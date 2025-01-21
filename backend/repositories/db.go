@@ -30,3 +30,4 @@ func ConnectDatabase() {
 
 	DB = database
 }
+//deneme
