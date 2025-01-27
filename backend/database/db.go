@@ -13,6 +13,7 @@ import (
 
 var DB *gorm.DB
 
+// tryconnectingdb
 func ConnectDB() {
 	// Config paketinden ayarları al
 	cfg := config.AppConfig
