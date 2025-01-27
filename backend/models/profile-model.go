@@ -13,7 +13,7 @@ type SocialMediaAccount struct {
 // Profile kullanıcı profil bilgileri
 type Profile struct {
 	ID             uint                 `gorm:"primaryKey;autoIncrement;column:id"`
-	UserID         uint                 `gorm:"not null;uniqueIndex;column:user_id"`
+	UserId         uint                 `gorm:"not null;uniqueIndex;column:user_id"`
 	PhotoURL       string               `gorm:"type:varchar(255);column:photo_url"`
 	Website        string               `gorm:"type:varchar(255);column:website"`
 	IdentityNumber string               `gorm:"type:varchar(11);column:identity_number"` // TC Kimlik
@@ -23,7 +23,7 @@ type Profile struct {
 	SocialAccounts []SocialMediaAccount `gorm:"type:jsonb;column:social_accounts"`
 	CreatedAt      time.Time            `gorm:"type:timestamp;default:CURRENT_TIMESTAMP;column:created_at"`
 	UpdatedAt      time.Time            `gorm:"type:timestamp;default:CURRENT_TIMESTAMP;column:updated_at"`
-	User           User                 `gorm:"foreignKey:UserID;references:ID"`
+	User           User                 `gorm:"foreignKey:UserId;references:UserId"`
 }
 
 // TableName tablosunun adını belirtir
