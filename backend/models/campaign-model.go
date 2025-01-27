@@ -4,7 +4,7 @@ import (
 	"time"
 )
 
-// Campaign modeli
+// Campaign model
 type Campaign struct {
 	CampaignId      uint      `gorm:"primaryKey;autoIncrement;column:campaign_id"`
 	UserId          uint      `gorm:"not null;column:user_id"` // Foreign key
