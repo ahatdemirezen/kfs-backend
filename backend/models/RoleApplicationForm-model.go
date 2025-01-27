@@ -4,7 +4,7 @@ import (
 	"time"
 )
 
-// RoleApplicationForm model
+// RoleApplicationForm modeli
 type RoleApplicationForm struct {
 	ApplicationId   uint      `gorm:"primaryKey;autoIncrement;column:id"` // Primary key
 	ApplicationType string    `gorm:"type:varchar(255);not null;column:application_type"`
