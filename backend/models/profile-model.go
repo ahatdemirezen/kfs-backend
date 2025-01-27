@@ -4,12 +4,6 @@ import (
 	"time"
 )
 
-// SocialMediaAccount sosyal medya hesap bilgileri
-type SocialMediaAccount struct {
-	SocialMediaURL string `gorm:"type:varchar(255)"` // Platform ana URL'i
-	FollowerCount  int    `gorm:"type:integer"`      // Takipçi sayısı
-}
-
 // Profile kullanıcı profil bilgileri
 type Profile struct {
 	ID             uint                 `gorm:"primaryKey;autoIncrement;column:id"`
@@ -20,7 +14,6 @@ type Profile struct {
 	BirthDate      time.Time            `gorm:"type:date;column:birth_date"`
 	Gender         string               `gorm:"type:varchar(20);column:gender"`
 	AcademicTitle  string               `gorm:"type:varchar(100);column:academic_title"`
-	SocialAccounts []SocialMediaAccount `gorm:"type:jsonb;column:social_accounts"`
 	CreatedAt      time.Time            `gorm:"type:timestamp;default:CURRENT_TIMESTAMP;column:created_at"`
 	UpdatedAt      time.Time            `gorm:"type:timestamp;default:CURRENT_TIMESTAMP;column:updated_at"`
 	User           User                 `gorm:"foreignKey:UserId;references:UserId"`
