@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 
+	"kfs-backend/config"
 	"kfs-backend/database" // Veritabanı bağlantısı
 
 	"github.com/gofiber/fiber/v2" // Fiber framework
@@ -16,7 +17,9 @@ func main() {
 	// CORS middleware'ini ekle
 	app.Use(cors.New())
 
-	// Veritabanı bağlantısını başlat
+	config.LoadConfig()
+
+	// Veritabanı bağlantısını baş	lat
 	database.ConnectDB()
 
 	app.Get("/", func(c *fiber.Ctx) error {
