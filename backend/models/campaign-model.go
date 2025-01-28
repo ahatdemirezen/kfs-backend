@@ -3,7 +3,7 @@ package models
 import (
 	"time"
 )
-
+//try
 // Campaign modeli
 type Campaign struct {
 	CampaignId      uint      `gorm:"primaryKey;autoIncrement;column:campaign_id"`
