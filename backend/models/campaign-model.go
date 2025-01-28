@@ -3,8 +3,8 @@ package models
 import (
 	"time"
 )
-
-// Campaign model
+//try
+// Campaign modeli
 type Campaign struct {
 	CampaignId      uint      `gorm:"primaryKey;autoIncrement;column:campaign_id"`
 	UserId          uint      `gorm:"not null;column:user_id"` // Foreign key
