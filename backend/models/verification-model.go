@@ -14,6 +14,8 @@ type Verification struct {
 	IsLawApproved   bool      `gorm:"type:boolean;default:false;column:is_law_approved"`
 	CreatedAt       time.Time `gorm:"type:timestamp;default:CURRENT_TIMESTAMP;column:created_at"`
 	UpdatedAt       time.Time `gorm:"type:timestamp;default:CURRENT_TIMESTAMP;column:updated_at"`
+	EmailVerificationCode string `json:"emailVerificationCode"`
+	EmailCodeExpiry int64 `json:"emailCodeExpiry"`
 
 	// User tablosu ile ilişkilendirme
 	User User `gorm:"foreignKey:UserId;references:UserId"`

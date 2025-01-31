@@ -5,8 +5,10 @@ import (
 	"golang.org/x/crypto/bcrypt"
 	"kfs-backend/database"
 	"kfs-backend/models"
+	"kfs-backend/service"
 	"crypto/rand"
 	"encoding/hex"
+	"time"
 )
 
 type RegisterRequest struct {
@@ -98,8 +100,37 @@ func Register(c *fiber.Ctx) error {
 		})
 	}
 
+	// Doğrulama kodu oluştur
+	verificationCode := service.GenerateVerificationCode()
+	
+	// Verification kaydı oluştur
+	verification := models.Verification{
+		UserId:          user.UserId,
+		IsEmailVerified: false,
+		IsPhoneVerified: false,
+		IsUserVerified:  false,
+		IsLawApproved:   false,
+		EmailVerificationCode: verificationCode,
+		EmailCodeExpiry: time.Now().Add(15 * time.Minute).Unix(), // 15 dakika geçerli
+	}
+
+	if result := db.Create(&verification); result.Error != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": "Doğrulama kaydı oluşturulurken bir hata oluştu",
+			"details": result.Error.Error(),
+		})
+	}
+
+	// Email gönder
+	if err := service.SendVerificationEmail(user.Email, verificationCode); err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": "Doğrulama e-postası gönderilirken bir hata oluştu",
+			"details": err.Error(),
+		})
+	}
+
 	// Gelen userType'e göre role belirle
-	userType := c.Query("userType") // frontend veya Postman'den gelen userType
+	userType := c.Query("userType")
 	var roleValue string
 	if userType == "bireysel" {
 		roleValue = "bireysel"
@@ -124,24 +155,8 @@ func Register(c *fiber.Ctx) error {
 		})
 	}
 
-	// Verification kaydı oluştur
-	verification := models.Verification{
-		UserId:          user.UserId,
-		IsEmailVerified: false,
-		IsPhoneVerified: false,
-		IsUserVerified:  false,
-		IsLawApproved:   false,
-	}
-
-	if result := db.Create(&verification); result.Error != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error": "Doğrulama kaydı oluşturulurken bir hata oluştu",
-			"details": result.Error.Error(),
-		})
-	}
-
 	return c.Status(fiber.StatusCreated).JSON(fiber.Map{
-		"message": "Kullanıcı başarıyla oluşturuldu. Lütfen email adresinizi doğrulayın.",
+		"message": "Kullanıcı başarıyla oluşturuldu. Lütfen email adresinize gönderilen kodu kullanarak hesabınızı doğrulayın.",
 		"userId": user.UserId,
 		"user": user,
 		"role": role,
@@ -158,17 +173,24 @@ func VerifyEmail(c *fiber.Ctx) error {
 		})
 	}
 
-	// Token doğruluğunu kontrol et (bu kısmı siz implemente etmelisiniz)
-	// if !isValidToken(req.Token) {
-	//     return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-	//         "error": "Geçersiz veya süresi dolmuş token",
-	//     })
-	// }
-
 	var verification models.Verification
 	if result := db.Where("user_id = ?", req.UserId).First(&verification); result.Error != nil {
 		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
 			"error": "Kullanıcı bulunamadı",
+		})
+	}
+
+	// Kodun süresinin dolup dolmadığını kontrol et
+	if time.Now().Unix() > verification.EmailCodeExpiry {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "Doğrulama kodunun süresi dolmuş",
+		})
+	}
+
+	// Doğrulama kodunu kontrol et
+	if verification.EmailVerificationCode != req.Token {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "Geçersiz doğrulama kodu",
 		})
 	}
 
