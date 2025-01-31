@@ -8,6 +8,7 @@ import (
 
 	"github.com/gofiber/fiber/v2" // Fiber framework
 	"github.com/gofiber/fiber/v2/middleware/cors"
+	"kfs-backend/routes"
 )
 
 func main() {
@@ -26,6 +27,7 @@ func main() {
 		return c.SendString("Fonbulucu API'sine Hoş Geldiniz")
 	})
 	// Rotaları tanımla
+	routes.SetupAuthRoutes(app)
 
 	// Uygulamayı başlat
 	log.Fatal(app.Listen(":3000"))

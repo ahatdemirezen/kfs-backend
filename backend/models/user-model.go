@@ -6,7 +6,7 @@ import (
 
 // User modeli
 type User struct {
-	UserId      uint      `gorm:"primaryKey;autoIncrement;column:id"`
+	UserId      uint      `gorm:"primaryKey;autoIncrement;column:user_id"`
 	Email       string    `gorm:"type:varchar(255);uniqueIndex;not null;column:email"`
 	Password    string    `gorm:"type:varchar(255);not null;column:password"`
 	Salt        string    `gorm:"type:varchar(255);not null;column:salt"` // Salt alanı eklendi

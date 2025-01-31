@@ -16,7 +16,7 @@ type Profile struct {
 	AcademicTitle  string    `gorm:"type:varchar(100);column:academic_title"`
 	CreatedAt      time.Time `gorm:"type:timestamp;default:CURRENT_TIMESTAMP;column:created_at"`
 	UpdatedAt      time.Time `gorm:"type:timestamp;default:CURRENT_TIMESTAMP;column:updated_at"`
-	User           User      `gorm:"foreignKey:UserId;references:UserId"`
+	User           User      `gorm:"foreignKey:user_id;references:user_id"`
 }
 
 // TableName tablosunun adını belirtir
