@@ -4,11 +4,15 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"kfs-backend/handlers"
 )
-// send
-func SetupAuthRoutes(app *fiber.App) {
-	auth := app.Group("/api/auth")
 
-	// Public routes
+func SetupUserRoutes(app *fiber.App) {
+	users := app.Group("/api/users")
+	users.Put("/:userId", handlers.UpdateUser)
+}
+
+func SetupAuthRoutes(app *fiber.App) {
+	// Auth routes
+	auth := app.Group("/api/auth")
 	auth.Post("/register", handlers.Register)
-	auth.Post("/verify-email", handlers.VerifyEmail)
+	auth.Post("/send-verification-email", handlers.SendVerificationEmail)
 } 
