@@ -18,6 +18,7 @@ func main() {
 	// CORS middleware'ini ekle
 	app.Use(cors.New())
 
+	// .env yükle (JWT secret vb.)
 	config.LoadConfig()
 
 	// Veritabanı bağlantısını baş	lat
@@ -27,8 +28,9 @@ func main() {
 		return c.SendString("Fonbulucu API'sine Hoş Geldiniz")
 	})
 	// Rotaları tanımla
-	routes.SetupAuthRoutes(app)
-
+	routes.SetupUserRoutes(app)
+	routes.SetupProfileRoutes(app) // Profil rotaları
+	routes.SetupAuthRoutes(app) //auth route'larını kaydet
 	// Uygulamayı başlat
 	log.Fatal(app.Listen(":3000"))
 }

@@ -51,8 +51,8 @@ func ConnectDB() {
 	// Config paketinden ayarları al
 	cfg := config.AppConfig
 
-	// DSN oluştur
-	dsn := fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=require",
+	// DSN oluştur (statement_cache_mode=disable parametresi eklenmiştir)
+	dsn := fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=require statement_cache_mode=disable",
 		cfg.SupabaseHost,
 		cfg.SupabaseUser,
 		cfg.SupabasePassword,
@@ -63,9 +63,9 @@ func ConnectDB() {
 	// GORM konfigürasyonu
 	gormConfig := &gorm.Config{
 		DisableForeignKeyConstraintWhenMigrating: true,
-		PrepareStmt: false, // Prepared statement'ları devre dışı bırak
-		Logger: logger.Default.LogMode(logger.Silent), // SQL loglarını kapat
-		SkipDefaultTransaction: true, // Varsayılan transaction'ları devre dışı bırak
+		PrepareStmt:                              false,                                 // Prepared statement'ları devre dışı bırak
+		Logger:                                   logger.Default.LogMode(logger.Silent), // SQL loglarını kapat
+		SkipDefaultTransaction:                   true,                                  // Varsayılan transaction'ları devre dışı bırak
 	}
 
 	// Veritabanına bağlan

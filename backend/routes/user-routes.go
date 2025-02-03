@@ -5,7 +5,7 @@ import (
 	"kfs-backend/handlers"
 )
 
-func SetupAuthRoutes(app *fiber.App) {
+func SetupUserRoutes(app *fiber.App) {
 	auth := app.Group("/api/auth")
 
 	// Public routes
