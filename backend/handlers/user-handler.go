@@ -126,6 +126,14 @@
 			})
 		}
 
+		// Query'den userType parametresini al
+		userType := c.Query("userType")
+		if userType == "" || (userType != "bireysel" && userType != "kurumsal") {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+				"error": "Geçersiz userType değeri. 'bireysel' veya 'kurumsal' olmalıdır",
+			})
+		}
+
 		// Kullanıcıyı veritabanında ara
 		var user models.User
 		if result := db.First(&user, userID); result.Error != nil {
@@ -159,8 +167,35 @@
 			})
 		}
 
+		// Kullanıcının mevcut rolünü kontrol et
+		var existingRole models.Role
+		result := db.Where("user_id = ?", userID).First(&existingRole)
+		
+		if result.Error != nil {
+			// Rol bulunamadıysa yeni rol oluştur
+			newRole := models.Role{
+				UserId: uint(userID),
+				Role:   userType,
+			}
+			if err := db.Create(&newRole).Error; err != nil {
+				return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+					"error": "Rol oluşturulurken hata oluştu",
+					"details": err.Error(),
+				})
+			}
+		} else {
+			// Mevcut rolü güncelle
+			existingRole.Role = userType
+			if err := db.Save(&existingRole).Error; err != nil {
+				return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+					"error": "Rol güncellenirken hata oluştu",
+					"details": err.Error(),
+				})
+			}
+		}
+
 		return c.Status(fiber.StatusOK).JSON(fiber.Map{
-			"message": "Kullanıcı başarıyla güncellendi",
+			"message": "Kullanıcı ve rol başarıyla güncellendi",
 			"user": user,
 		})
 	}
