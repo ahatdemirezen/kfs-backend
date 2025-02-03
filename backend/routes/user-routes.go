@@ -10,7 +10,7 @@ func SetupUserRoutes(app *fiber.App) {
 	users.Put("/:userId", handlers.UpdateUser)
 }
 
-func SetupAuthRoutes(app *fiber.App) {
+func SetupRegisterRoutes(app *fiber.App) {
 	// Auth routes
 	auth := app.Group("/api/auth")
 	auth.Post("/register", handlers.Register)
