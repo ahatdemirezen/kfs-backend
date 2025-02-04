@@ -1,9 +1,9 @@
 package handlers
 
 import (
-	"log" // <-- Bunu ekleyin
+	"log"
 	"time"
-    
+
 	"kfs-backend/config"
 	"github.com/gofiber/fiber/v2"
 	"github.com/golang-jwt/jwt/v4"
@@ -40,15 +40,15 @@ func Login(c *fiber.Ctx) error {
 		})
 	}
 
-	// 2) Kullanıcının rolünü getir
-	var role models.Role
-	roleResult := db.Where("user_id = ?", user.UserId).First(&role)
-	if roleResult.Error != nil {
+	// 2) Kullanıcının rollerini getir
+	var roles []string
+	db.Table("roles").Where("user_id = ?", user.UserId).Pluck("role", &roles)
+	if len(roles) == 0 {
 		log.Println("Kullanıcıya ait rol bulunamadı, varsayılan olarak 'user' atanıyor. userID:", user.UserId)
-		role.Role = "user" // Varsayılan rol
+		roles = append(roles, "user") // Varsayılan rol
 	}
 
-	log.Printf("Bulunan rol: %+v", role) // Role değerini logla
+	log.Printf("Bulunan roller: %+v", roles) // Roller array olarak loglanıyor
 
 	// 3) Şifreyi kontrol et
 	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(req.Password+user.Salt)); err != nil {
@@ -58,16 +58,16 @@ func Login(c *fiber.Ctx) error {
 		})
 	}
 
-	log.Println("Login başarılı, userID:", user.UserId, "Role:", role.Role)
+	log.Println("Login başarılı, userID:", user.UserId, "Roller:", roles)
 
 	// 4) Access ve Refresh token oluştur
-	accessToken, err := generateJWT(user.UserId, role.Role, 15*time.Minute, "access")
+	accessToken, err := generateJWT(user.UserId, roles, 15*time.Minute, "access")
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": "Access token oluşturulamadı",
 		})
 	}
-	refreshToken, err := generateJWT(user.UserId, role.Role, 24*7*time.Hour, "refresh") // 7 gün
+	refreshToken, err := generateJWT(user.UserId, roles, 24*7*time.Hour, "refresh")
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": "Refresh token oluşturulamadı",
@@ -75,18 +75,15 @@ func Login(c *fiber.Ctx) error {
 	}
 
 	// 5) Cookie'lere yaz
-	// Access token cookie
 	c.Cookie(&fiber.Cookie{
 		Name:     "access_token",
 		Value:    accessToken,
 		Expires:  time.Now().Add(15 * time.Minute),
 		HTTPOnly: true,
-		Secure:   false, // Prod'da true + HTTPS
+		Secure:   false,
 		SameSite: "strict",
 		Path:     "/",
 	})
-
-	// Refresh token cookie
 	c.Cookie(&fiber.Cookie{
 		Name:     "refresh_token",
 		Value:    refreshToken,
@@ -102,7 +99,7 @@ func Login(c *fiber.Ctx) error {
 	})
 }
 
-// Logout fonksiyonu
+
 func Logout(c *fiber.Ctx) error {
 	// Aynı cookie isimleriyle, geçmiş bir expire vererek yok edebiliriz
 	c.Cookie(&fiber.Cookie{
@@ -129,20 +126,18 @@ func Logout(c *fiber.Ctx) error {
 	})
 }
 
+
 // generateJWT: userId, role ve süre bilgisiyle JWT üretimi
-func generateJWT(userId uint, role string, duration time.Duration, tokenType string) (string, error) {
+func generateJWT(userId uint, roles []string, duration time.Duration, tokenType string) (string, error) {
 	claims := jwt.MapClaims{
 		"userId": userId,
-		"role":   role,
+		"roles":  roles,
 		"type":   tokenType,
 		"exp":    time.Now().Add(duration).Unix(),
 		"iat":    time.Now().Unix(),
 	}
-
-
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 
-	// .env dosyasında tanımlı secret'ları çekelim
 	secret := config.AppConfig.JwtSecret
 	if tokenType == "refresh" {
 		secret = config.AppConfig.JwtSecretRefresh
@@ -162,3 +157,5 @@ func generateJWT(userId uint, role string, duration time.Duration, tokenType str
 	log.Printf("JWT oluşturuldu. Token tipi: %s", tokenType)
 	return signedToken, nil
 }
+
+
