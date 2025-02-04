@@ -20,6 +20,16 @@ type UpdateProfileRequest struct {
 	AcademicTitle  string `json:"academicTitle"`              // Akademik unvan
 }
 
+// Profil oluşturma isteği için yapı
+type CreateProfileRequest struct {
+	PhotoURL       string `json:"photoUrl"`       // Fotoğraf URL
+	Website        string `json:"website"`        // Kişisel web sitesi
+	IdentityNumber string `json:"identityNumber"` // TC Kimlik No
+	BirthDate      string `json:"birthDate"`      // Doğum tarihi
+	Gender         string `json:"gender"`         // Cinsiyet
+	AcademicTitle  string `json:"academicTitle"`  // Akademik unvan
+}
+
 // Profil bilgilerini getirir
 func GetProfileByUserId(c *fiber.Ctx) error {
 	userId := c.Params("userId") // URL'den userId'yi alır
@@ -81,6 +91,61 @@ func UpdateProfile(c *fiber.Ctx) error {
 	// Güncellenmiş profili döner
 	return c.Status(http.StatusOK).JSON(fiber.Map{
 		"message": "Profil başarıyla güncellendi",
+		"profile": profile,
+	})
+}
+
+// Yeni profil oluşturur
+func CreateProfile(c *fiber.Ctx) error {
+	var req CreateProfileRequest
+
+	// İstek gövdesini parse et
+	if err := c.BodyParser(&req); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "Geçersiz istek formatı",
+		})
+	}
+
+	// Local'den userId'yi al
+	userId := c.Locals("userId").(uint)
+
+	// Kullanıcının zaten profili var mı kontrol et
+	var existingProfile models.Profile
+	if err := database.DB.Where("user_id = ?", userId).First(&existingProfile).Error; err == nil {
+		return c.Status(http.StatusConflict).JSON(fiber.Map{
+			"error": "Bu kullanıcı için zaten bir profil mevcut",
+		})
+	}
+
+	// Doğum tarihini string'den time.Time formatına dönüştür
+	birthDate, err := time.Parse("2006-01-02", req.BirthDate)
+	if err != nil {
+		return c.Status(http.StatusBadRequest).JSON(fiber.Map{
+			"error": "Doğum tarihi formatı geçersiz. Beklenen format: YYYY-MM-DD",
+		})
+	}
+
+	// Yeni profil oluştur
+	profile := models.Profile{
+		UserId:         userId,
+		PhotoURL:       req.PhotoURL,
+		Website:        req.Website,
+		IdentityNumber: req.IdentityNumber,
+		BirthDate:      birthDate,
+		Gender:         req.Gender,
+		AcademicTitle:  req.AcademicTitle,
+	}
+
+	// Profili veritabanına kaydet
+	if err := database.DB.Create(&profile).Error; err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": "Profil oluşturulurken bir hata oluştu",
+		})
+	}
+
+	// Oluşturulan profili döner
+	return c.Status(http.StatusCreated).JSON(fiber.Map{
+		"message": "Profil başarıyla oluşturuldu",
 		"profile": profile,
 	})
 }
