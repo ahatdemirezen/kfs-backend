@@ -31,9 +31,10 @@ func main() {
 
 	// Tüm route'ları ayarla
 	routes.SetupRegisterRoutes(app)
-	routes.SetupUserRoutes(app)    // User routes'ları ekle
-	routes.SetupProfileRoutes(app) // Profil rotaları
-	routes.SetupAuthRoutes(app)    //auth route'larını kaydet
+	routes.SetupUserRoutes(app)         // User routes'ları ekle
+	routes.SetupProfileRoutes(app)      // Profil rotaları
+	routes.SetupAuthRoutes(app)         //auth route'larını kaydet
+	routes.SetupVerificationRoutes(app) //verification route'larını kaydet
 
 	// Debug için tüm route'ları yazdır
 	for _, route := range app.GetRoutes() {
