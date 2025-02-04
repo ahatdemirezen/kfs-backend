@@ -18,6 +18,16 @@ func SetupProfileRoutes(app *fiber.App) {
 		handlers.GetProfileByUserId,
 	)
 
+	// Profil oluşturma
+	profile.Post("/",
+		middleware.AuthenticateMiddleware,
+		middleware.IsUserMiddleware,
+		handlers.CreateProfile,
+	)
+
 	// Profil bilgilerini güncelleme
-	profile.Put("/", handlers.UpdateProfile)
+	profile.Put("/",
+		middleware.AuthenticateMiddleware,
+		middleware.IsUserMiddleware,
+		handlers.UpdateProfile)
 }
