@@ -1,6 +1,7 @@
 package services
 
 import (
+	"fmt"
 	"log"
 
 	"kfs-backend/database"
@@ -13,9 +14,16 @@ func UpdateVerificationStatus(userId uint, identityNumber string) error {
 
 	// Kullanıcının doğrulama kaydını bul
 	var verification models.Verification
-	if err := db.Where("user_id = ?", userId).First(&verification).Error; err != nil {
-		log.Println("HATA: Kullanıcının doğrulama kaydı bulunamadı -", err)
+	if err := db.Where("user_id = ?", userId).Take(&verification).Error; err != nil {
+		log.Println("HATA: Kullanıcının doğrulama kaydı bulunamadı -", err, "UserID:", userId)
 		return err
+	}
+	
+
+	//Eğer kimlik numarası daha önce doğrulanmışsa hata döndür
+	if verification.IsUserVerified {
+		log.Println("HATA: Kullanıcı zaten doğrulanmış -UserID", userId)
+		return fmt.Errorf("Kullanıcı zaten doğrulanmış")
 	}
 
 	// Güncelleme işlemi
