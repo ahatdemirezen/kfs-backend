@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"kfs-backend/config"
+
 	"github.com/gofiber/fiber/v2"
 	"github.com/golang-jwt/jwt/v4"
 	"golang.org/x/crypto/bcrypt"
@@ -99,7 +100,6 @@ func Login(c *fiber.Ctx) error {
 	})
 }
 
-
 func Logout(c *fiber.Ctx) error {
 	// Aynı cookie isimleriyle, geçmiş bir expire vererek yok edebiliriz
 	c.Cookie(&fiber.Cookie{
@@ -126,6 +126,83 @@ func Logout(c *fiber.Ctx) error {
 	})
 }
 
+// RefreshToken: Refresh token'ı doğrulayıp yeni access token üretir
+func RefreshToken(c *fiber.Ctx) error {
+	refreshToken := c.Cookies("refresh_token")
+	if refreshToken == "" {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+			"error": "Refresh token bulunamadı",
+		})
+	}
+
+	// Refresh token'ı doğrula
+	token, err := jwt.Parse(refreshToken, func(token *jwt.Token) (interface{}, error) {
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, fiber.NewError(fiber.StatusUnauthorized, "Geçersiz token imza metodu")
+		}
+		return []byte(config.AppConfig.JwtSecretRefresh), nil
+	})
+
+	if err != nil {
+		log.Printf("Refresh token doğrulama hatası: %v", err)
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+			"error": "Geçersiz refresh token",
+		})
+	}
+
+	claims, ok := token.Claims.(jwt.MapClaims)
+	if !ok || !token.Valid {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+			"error": "Geçersiz token claims",
+		})
+	}
+
+	// Token tipini kontrol et
+	tokenType, ok := claims["type"].(string)
+	if !ok || tokenType != "refresh" {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+			"error": "Geçersiz token tipi",
+		})
+	}
+
+	// Kullanıcı bilgilerini al
+	userId := uint(claims["userId"].(float64))
+	roles, ok := claims["roles"].([]interface{})
+	if !ok {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": "Roller alınamadı",
+		})
+	}
+
+	// Interface dizisini string dizisine dönüştür
+	rolesStr := make([]string, len(roles))
+	for i, role := range roles {
+		rolesStr[i] = role.(string)
+	}
+
+	// Yeni access token oluştur
+	newAccessToken, err := generateJWT(userId, rolesStr, 15*time.Minute, "access")
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": "Yeni access token oluşturulamadı",
+		})
+	}
+
+	// Yeni access token'ı cookie olarak ayarla
+	c.Cookie(&fiber.Cookie{
+		Name:     "access_token",
+		Value:    newAccessToken,
+		Expires:  time.Now().Add(15 * time.Minute),
+		HTTPOnly: true,
+		Secure:   false,
+		SameSite: "strict",
+		Path:     "/",
+	})
+
+	return c.JSON(fiber.Map{
+		"message": "Access token yenilendi",
+	})
+}
 
 // generateJWT: userId, role ve süre bilgisiyle JWT üretimi
 func generateJWT(userId uint, roles []string, duration time.Duration, tokenType string) (string, error) {
@@ -157,5 +234,3 @@ func generateJWT(userId uint, roles []string, duration time.Duration, tokenType 
 	log.Printf("JWT oluşturuldu. Token tipi: %s", tokenType)
 	return signedToken, nil
 }
-
-

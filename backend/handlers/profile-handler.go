@@ -1,11 +1,10 @@
 package handlers
 
 import (
-	"kfs-backend/database"
-	"kfs-backend/models"
+	"kfs-backend/services"
 	"net/http"
-	"time" // Zaman işlemleri için gerekli paket
 
+	// Zaman işlemleri için gerekli paket
 	"github.com/gofiber/fiber/v2"
 )
 
@@ -34,16 +33,13 @@ type CreateProfileRequest struct {
 func GetProfileByUserId(c *fiber.Ctx) error {
 	userId := c.Params("userId") // URL'den userId'yi alır
 
-	var profile models.Profile
-	// Veritabanında user_id'ye göre profil arar
-	if err := database.DB.Where("user_id = ?", userId).First(&profile).Error; err != nil {
-		// Profil bulunamazsa 404 döner
+	profile, err := services.GetProfileByUserId(userId)
+	if err != nil {
 		return c.Status(http.StatusNotFound).JSON(fiber.Map{
-			"error": "Profil bulunamadı",
+			"error": err.Error(),
 		})
 	}
 
-	// Profil bilgilerini JSON formatında döner
 	return c.Status(http.StatusOK).JSON(profile)
 }
 
@@ -57,38 +53,24 @@ func UpdateProfile(c *fiber.Ctx) error {
 		})
 	}
 
-	var profile models.Profile
-	// Kullanıcının profilini bul
-	if err := database.DB.Where("user_id = ?", req.UserId).First(&profile).Error; err != nil {
-		return c.Status(http.StatusNotFound).JSON(fiber.Map{
-			"error": "Profil bulunamadı",
-		})
-	}
+	userId := c.Locals("userId").(uint)
 
-	// Doğum tarihini string'den time.Time formatına dönüştür
-	birthDate, err := time.Parse("2006-01-02", req.BirthDate) // YYYY-MM-DD formatını kullanıyoruz
+	profile, err := services.UpdateProfile(
+		userId,
+		req.PhotoURL,
+		req.Website,
+		req.IdentityNumber,
+		req.BirthDate,
+		req.Gender,
+		req.AcademicTitle,
+	)
+
 	if err != nil {
-		return c.Status(http.StatusBadRequest).JSON(fiber.Map{
-			"error": "Doğum tarihi formatı geçersiz. Beklenen format: YYYY-MM-DD",
-		})
-	}
-
-	// Profili güncelle
-	profile.PhotoURL = req.PhotoURL
-	profile.Website = req.Website
-	profile.IdentityNumber = req.IdentityNumber
-	profile.BirthDate = birthDate // Dönüştürülmüş `time.Time` değeri
-	profile.Gender = req.Gender
-	profile.AcademicTitle = req.AcademicTitle
-
-	// Güncellemeyi veritabanına kaydet
-	if err := database.DB.Save(&profile).Error; err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error": "Profil güncellenirken bir hata oluştu",
+			"error": err.Error(),
 		})
 	}
 
-	// Güncellenmiş profili döner
 	return c.Status(http.StatusOK).JSON(fiber.Map{
 		"message": "Profil başarıyla güncellendi",
 		"profile": profile,
@@ -106,44 +88,24 @@ func CreateProfile(c *fiber.Ctx) error {
 		})
 	}
 
-	// Local'den userId'yi al
 	userId := c.Locals("userId").(uint)
 
-	// Kullanıcının zaten profili var mı kontrol et
-	var existingProfile models.Profile
-	if err := database.DB.Where("user_id = ?", userId).First(&existingProfile).Error; err == nil {
-		return c.Status(http.StatusConflict).JSON(fiber.Map{
-			"error": "Bu kullanıcı için zaten bir profil mevcut",
-		})
-	}
+	profile, err := services.CreateProfile(
+		userId,
+		req.PhotoURL,
+		req.Website,
+		req.IdentityNumber,
+		req.BirthDate,
+		req.Gender,
+		req.AcademicTitle,
+	)
 
-	// Doğum tarihini string'den time.Time formatına dönüştür
-	birthDate, err := time.Parse("2006-01-02", req.BirthDate)
 	if err != nil {
-		return c.Status(http.StatusBadRequest).JSON(fiber.Map{
-			"error": "Doğum tarihi formatı geçersiz. Beklenen format: YYYY-MM-DD",
-		})
-	}
-
-	// Yeni profil oluştur
-	profile := models.Profile{
-		UserId:         userId,
-		PhotoURL:       req.PhotoURL,
-		Website:        req.Website,
-		IdentityNumber: req.IdentityNumber,
-		BirthDate:      birthDate,
-		Gender:         req.Gender,
-		AcademicTitle:  req.AcademicTitle,
-	}
-
-	// Profili veritabanına kaydet
-	if err := database.DB.Create(&profile).Error; err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error": "Profil oluşturulurken bir hata oluştu",
+			"error": err.Error(),
 		})
 	}
 
-	// Oluşturulan profili döner
 	return c.Status(http.StatusCreated).JSON(fiber.Map{
 		"message": "Profil başarıyla oluşturuldu",
 		"profile": profile,

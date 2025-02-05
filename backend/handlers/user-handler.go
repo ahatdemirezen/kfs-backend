@@ -1,13 +1,10 @@
 package handlers
 
 import (
-	"github.com/gofiber/fiber/v2"
-	"golang.org/x/crypto/bcrypt"
-	"kfs-backend/database"
-	"kfs-backend/models"
-	"crypto/rand"
-	"encoding/hex"
+	"kfs-backend/services"
 	"strconv"
+
+	"github.com/gofiber/fiber/v2"
 )
 
 type RegisterRequest struct {
@@ -22,41 +19,25 @@ type VerifyEmailRequest struct {
 }
 
 type UpdateUserRequest struct {
-	UserId      uint   `json:"userId" validate:"required"`
-	FirstName   string `json:"firstName" validate:"required"`
-	LastName    string `json:"lastName" validate:"required"`
-	Phone       string `json:"phone" validate:"required"`
-	Country     string `json:"country" validate:"required"`
-	CompanyName string `json:"companyName" validate:"required"`
-	TaxOffice   string `json:"taxOffice" validate:"required"`
-	TaxNumber   string `json:"taxNumber" validate:"required"`
-	IsLawApproved bool `json:"isLawApproved" validate:"required"`
+	UserId        uint   `json:"userId" validate:"required"`
+	FirstName     string `json:"firstName" validate:"required"`
+	LastName      string `json:"lastName" validate:"required"`
+	Phone         string `json:"phone" validate:"required"`
+	Country       string `json:"country" validate:"required"`
+	CompanyName   string `json:"companyName" validate:"required"`
+	TaxOffice     string `json:"taxOffice" validate:"required"`
+	TaxNumber     string `json:"taxNumber" validate:"required"`
+	IsLawApproved bool   `json:"isLawApproved" validate:"required"`
 }
 
-func generateSalt() string {
-	bytes := make([]byte, 16)
-	if _, err := rand.Read(bytes); err != nil {
-		return ""
-	}
-	return hex.EncodeToString(bytes)
-}
+
 
 func Register(c *fiber.Ctx) error {
-	db := database.DB
-	
 	// Request body'i parse et
-	var req RegisterRequest
+	var req services.RegisterRequest
 	if err := c.BodyParser(&req); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": "İstek formatı geçersiz",
-		})
-	}
-
-	// Email kontrolü
-	var existingUser models.User
-	if result := db.Where("email = ?", req.Email).First(&existingUser); result.Error == nil {
-		return c.Status(fiber.StatusConflict).JSON(fiber.Map{
-			"error": "Bu email adresi zaten kayıtlı",
 		})
 	}
 
@@ -67,57 +48,22 @@ func Register(c *fiber.Ctx) error {
 		})
 	}
 
-	// Salt oluştur
-	salt := generateSalt()
-
-	// Şifreyi hashle
-	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(req.Password+salt), bcrypt.DefaultCost)
+	user, err := services.RegisterUser(req)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error": "Şifre işlenirken bir hata oluştu",
-		})
-	}
-
-	// Yeni kullanıcı oluştur
-	user := models.User{
-		Email:    req.Email,
-		Password: string(hashedPassword),
-		Salt:     salt,
-	}
-
-	// Kullanıcıyı veritabanına kaydet
-	if result := db.Create(&user); result.Error != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error": "Kullanıcı oluşturulurken bir hata oluştu",
-			"details": result.Error.Error(),
-		})
-	}
-
-	// Verification kaydı oluştur
-	verification := models.Verification{
-		UserId:          user.UserId,
-		IsEmailVerified: true, // Email doğrulandığı için true
-		IsPhoneVerified: false,
-		IsUserVerified:  false,
-		IsLawApproved:   false,
-	}
-
-	if result := db.Create(&verification); result.Error != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error": "Doğrulama kaydı oluşturulurken bir hata oluştu",
-			"details": result.Error.Error(),
+			"error":   "Kullanıcı oluşturulurken bir hata oluştu",
+			"details": err.Error(),
 		})
 	}
 
 	return c.Status(fiber.StatusCreated).JSON(fiber.Map{
 		"message": "Kullanıcı başarıyla oluşturuldu ve email doğrulandı",
-		"userId": user.UserId,
-		"user": user,
+		"userId":  user.UserId,
+		"user":    user,
 	})
 }
-func UpdateUser(c *fiber.Ctx) error {
-	db := database.DB
 
+func UpdateUser(c *fiber.Ctx) error {
 	// URL'den gelen userId parametresini al
 	userIDParam := c.Params("userId")
 	userID, err := strconv.Atoi(userIDParam)
@@ -135,88 +81,25 @@ func UpdateUser(c *fiber.Ctx) error {
 		})
 	}
 
-	// Kullanıcıyı veritabanında ara
-	var user models.User
-	if result := db.First(&user, userID); result.Error != nil {
-		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
-			"error": "Kullanıcı bulunamadı",
-		})
-	}
-
-	var verification models.Verification
-
-	if result := db.Where("user_id = ?", userID).First(&verification); result.Error != nil {
-
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-
-			"error": "Doğrulama bilgileri bulunamadı",
-
-		})
-
-	}
-
 	// İstekten gelen güncelleme verilerini parse et
-	var req UpdateUserRequest
+	var req services.UpdateUserRequest
 	if err := c.BodyParser(&req); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": "Geçersiz istek formatı",
 		})
 	}
 
-	// Kullanıcı bilgilerini güncelle
-	user.FirstName = req.FirstName
-	user.LastName = req.LastName
-	user.Phone = req.Phone
-	user.Country = req.Country
-	user.CompanyName = req.CompanyName
-	user.TaxOffice = req.TaxOffice
-	user.TaxNumber = req.TaxNumber
-	verification.IsLawApproved = req.IsLawApproved
-	// Veritabanında güncelle
-	if result := db.Save(&user); result.Error != nil {
+	user, verification, err := services.UpdateUserInfo(uint(userID), userType, req)
+	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error": "Kullanıcı güncellenirken hata oluştu",
-			"details": result.Error.Error(),
+			"error":   "Kullanıcı güncellenirken hata oluştu",
+			"details": err.Error(),
 		})
-	}
-
-	if result := db.Save(&verification); result.Error != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error": "Doğrulama bilgileri güncellenirken hata oluştu",
-			"details": result.Error.Error(),
-		})
-	}
-
-	// Kullanıcının mevcut rolünü kontrol et
-	var existingRole models.Role
-	result := db.Where("user_id = ?", userID).First(&existingRole)
-	
-	if result.Error != nil {
-		// Rol bulunamadıysa yeni rol oluştur
-		newRole := models.Role{
-			UserId: uint(userID),
-			Role:   userType,
-		}
-		if err := db.Create(&newRole).Error; err != nil {
-			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-				"error": "Rol oluşturulurken hata oluştu",
-				"details": err.Error(),
-			})
-		}
-	} else {
-		// Mevcut rolü güncelle
-		existingRole.Role = userType
-		if err := db.Save(&existingRole).Error; err != nil {
-			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-				"error": "Rol güncellenirken hata oluştu",
-				"details": err.Error(),
-			})
-		}
 	}
 
 	return c.Status(fiber.StatusOK).JSON(fiber.Map{
-		"message": "Kullanıcı ve rol başarıyla güncellendi",
-		"user": user,
+		"message":      "Kullanıcı ve rol başarıyla güncellendi",
+		"user":         user,
 		"verification": verification,
 	})
 }
