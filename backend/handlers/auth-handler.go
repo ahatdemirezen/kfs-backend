@@ -19,10 +19,9 @@ type LoginRequest struct {
 	Password string `json:"password" validate:"required"`
 }
 
-var secure = config.AppConfig.NodeEnv == "production" 
-
 // Login fonksiyonu
 func Login(c *fiber.Ctx) error {
+	secure := config.AppConfig.NodeEnv == "production"
 	db := database.DB
 
 	var req LoginRequest
@@ -77,8 +76,6 @@ func Login(c *fiber.Ctx) error {
 		})
 	}
 
-	
-
 	c.Cookie(&fiber.Cookie{
 		Name:     "access_token",
 		Value:    accessToken,
@@ -104,6 +101,7 @@ func Login(c *fiber.Ctx) error {
 }
 
 func Logout(c *fiber.Ctx) error {
+	secure := config.AppConfig.NodeEnv == "production"
 	// Aynı cookie isimleriyle, geçmiş bir expire vererek yok edebiliriz
 	c.Cookie(&fiber.Cookie{
 		Name:     "access_token",
@@ -122,7 +120,7 @@ func Logout(c *fiber.Ctx) error {
 		Secure:   secure,
 		SameSite: "strict", // frontend ve backend farklı serverlarda alınırsa canlıya burası değiştirilecek
 		Path:     "/",
-	})	
+	})
 
 	return c.JSON(fiber.Map{
 		"message": "Çıkış yapıldı. Token cookie'leri silindi.",
@@ -131,6 +129,7 @@ func Logout(c *fiber.Ctx) error {
 
 // RefreshToken: Refresh token'ı doğrulayıp yeni access token üretir
 func RefreshToken(c *fiber.Ctx) error {
+	secure := config.AppConfig.NodeEnv == "production"
 	refreshToken := c.Cookies("refresh_token")
 	if refreshToken == "" {
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
@@ -197,7 +196,7 @@ func RefreshToken(c *fiber.Ctx) error {
 		Value:    newAccessToken,
 		Expires:  time.Now().Add(15 * time.Minute),
 		HTTPOnly: true,
-		Secure:   secure,	
+		Secure:   secure,
 		SameSite: "strict", // frontend ve backend farklı serverlarda alınırsa canlıya burası değiştirilecek
 		Path:     "/",
 	})
