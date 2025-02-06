@@ -19,6 +19,8 @@ type LoginRequest struct {
 	Password string `json:"password" validate:"required"`
 }
 
+var secure = config.AppConfig.NodeEnv == "production" 
+
 // Login fonksiyonu
 func Login(c *fiber.Ctx) error {
 	db := database.DB
@@ -75,14 +77,15 @@ func Login(c *fiber.Ctx) error {
 		})
 	}
 
-	// 5) Cookie'lere yaz
+	
+
 	c.Cookie(&fiber.Cookie{
 		Name:     "access_token",
 		Value:    accessToken,
 		Expires:  time.Now().Add(15 * time.Minute),
 		HTTPOnly: true,
-		Secure:   false,
-		SameSite: "strict",
+		Secure:   secure,
+		SameSite: "strict", // frontend ve backend farklı serverlarda alınırsa canlıya burası değiştirilecek
 		Path:     "/",
 	})
 	c.Cookie(&fiber.Cookie{
@@ -90,8 +93,8 @@ func Login(c *fiber.Ctx) error {
 		Value:    refreshToken,
 		Expires:  time.Now().Add(24 * 7 * time.Hour),
 		HTTPOnly: true,
-		Secure:   false,
-		SameSite: "strict",
+		Secure:   secure,
+		SameSite: "strict", // frontend ve backend farklı serverlarda alınırsa canlıya burası değiştirilecek
 		Path:     "/",
 	})
 
@@ -107,8 +110,8 @@ func Logout(c *fiber.Ctx) error {
 		Value:    "",
 		Expires:  time.Now().Add(-1 * time.Hour),
 		HTTPOnly: true,
-		Secure:   false,
-		SameSite: "strict",
+		Secure:   secure,
+		SameSite: "strict", // frontend ve backend farklı serverlarda alınırsa canlıya burası değiştirilecek
 		Path:     "/",
 	})
 	c.Cookie(&fiber.Cookie{
@@ -116,10 +119,10 @@ func Logout(c *fiber.Ctx) error {
 		Value:    "",
 		Expires:  time.Now().Add(-1 * time.Hour),
 		HTTPOnly: true,
-		Secure:   false,
-		SameSite: "strict",
+		Secure:   secure,
+		SameSite: "strict", // frontend ve backend farklı serverlarda alınırsa canlıya burası değiştirilecek
 		Path:     "/",
-	})
+	})	
 
 	return c.JSON(fiber.Map{
 		"message": "Çıkış yapıldı. Token cookie'leri silindi.",
@@ -194,8 +197,8 @@ func RefreshToken(c *fiber.Ctx) error {
 		Value:    newAccessToken,
 		Expires:  time.Now().Add(15 * time.Minute),
 		HTTPOnly: true,
-		Secure:   false,
-		SameSite: "strict",
+		Secure:   secure,	
+		SameSite: "strict", // frontend ve backend farklı serverlarda alınırsa canlıya burası değiştirilecek
 		Path:     "/",
 	})
 
