@@ -11,20 +11,6 @@ import (
 func SetupProfileRoutes(app *fiber.App) {
 	profile := app.Group("/api/profile")
 
-	// Profil bilgilerini getirme
-	profile.Get("/:userId",
-		middleware.AuthenticateMiddleware,
-		middleware.IsUserMiddleware,
-		handlers.GetProfileByUserId,
-	)
-
-	// Profil oluşturma
-	profile.Post("/",
-		middleware.AuthenticateMiddleware,
-		middleware.IsUserMiddleware,
-		handlers.CreateProfile,
-	)
-
 	// Profil bilgilerini güncelleme
 	profile.Put("/",
 		middleware.AuthenticateMiddleware,

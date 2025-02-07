@@ -6,9 +6,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
-// IsUserMiddleware, kullanıcı rolü kontrolü yapar
-func IsUserMiddleware(c *fiber.Ctx) error {
-	// Role listesini string array olarak al
+func IsEntrepreneurMiddleware(c *fiber.Ctx) error {
 	roles, ok := c.Locals("roles").([]string)
 	if !ok {
 		log.Println("HATA: Rol bilgisi bulunamadı veya yanlış formatta")
@@ -20,7 +18,7 @@ func IsUserMiddleware(c *fiber.Ctx) error {
 	// Kullanıcının rollerinde "bireysel" veya "kurumsal" olup olmadığını kontrol et
 	isAuthorized := false
 	for _, role := range roles {
-		if role == "individual" || role == "corporate" {
+		if role == "entrepreneur" {
 			isAuthorized = true
 			break
 		}

@@ -30,8 +30,6 @@ type UpdateUserRequest struct {
 	IsLawApproved bool   `json:"isLawApproved" validate:"required"`
 }
 
-
-
 func Register(c *fiber.Ctx) error {
 	// Request body'i parse et
 	var req services.RegisterRequest
@@ -75,9 +73,9 @@ func UpdateUser(c *fiber.Ctx) error {
 
 	// Query'den userType parametresini al
 	userType := c.Query("userType")
-	if userType == "" || (userType != "bireysel" && userType != "kurumsal") {
+	if userType == "" || (userType != "individual" && userType != "corporate") {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": "Geçersiz userType değeri. 'bireysel' veya 'kurumsal' olmalıdır",
+			"error": "Geçersiz userType değeri. 'individual' veya 'corporate' olmalıdır",
 		})
 	}
 
@@ -102,4 +100,18 @@ func UpdateUser(c *fiber.Ctx) error {
 		"user":         user,
 		"verification": verification,
 	})
+}
+
+func GetUser(c *fiber.Ctx) error {
+	// Middleware'den userId'yi al
+	userId := c.Locals("userId").(uint)
+
+	profile, err := services.GetUser(userId)
+	if err != nil {
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
+			"error": "Kullanıcı bulunamadı",
+		})
+	}
+
+	return c.Status(fiber.StatusOK).JSON(profile)
 }

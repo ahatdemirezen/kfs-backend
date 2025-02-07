@@ -50,9 +50,28 @@ func Login(c *fiber.Ctx) error {
 		roles = append(roles, "user") // Varsayılan rol
 	}
 
+	// 3) Kullanıcının profilini getir
+	var profile models.Profile
+	profileResult := db.Where("user_id = ?", user.UserId).First(&profile)
+	var profileId uint
+	if profileResult.Error != nil {
+		// Profil bulunamadıysa yeni profil oluştur
+		newProfile := models.Profile{
+			UserId: user.UserId,
+		}	
+		if err := db.Create(&newProfile).Error; err != nil {
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+				"error": "Profil oluşturulamadı",
+			})
+		}
+		profileId = newProfile.ProfileId
+	} else {
+		profileId = profile.ProfileId
+	}
+
 	log.Printf("Bulunan roller: %+v", roles) // Roller array olarak loglanıyor
 
-	// 3) Şifreyi kontrol et
+	// 4) Şifreyi kontrol et
 	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(req.Password+user.Salt)); err != nil {
 		log.Println("Şifre kontrolü başarısız, userID:", user.UserId, "Hata:", err)
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
@@ -62,14 +81,14 @@ func Login(c *fiber.Ctx) error {
 
 	log.Println("Login başarılı, userID:", user.UserId, "Roller:", roles)
 
-	// 4) Access ve Refresh token oluştur
-	accessToken, err := generateJWT(user.UserId, roles, 15*time.Minute, "access")
+	// 5) Access ve Refresh token oluştur
+	accessToken, err := generateJWT(user.UserId, profileId, roles, 15*time.Minute, "access")
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": "Access token oluşturulamadı",
 		})
 	}
-	refreshToken, err := generateJWT(user.UserId, roles, 24*7*time.Hour, "refresh")
+	refreshToken, err := generateJWT(user.UserId, profileId, roles, 24*7*time.Hour, "refresh")
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": "Refresh token oluşturulamadı",
@@ -169,6 +188,7 @@ func RefreshToken(c *fiber.Ctx) error {
 
 	// Kullanıcı bilgilerini al
 	userId := uint(claims["userId"].(float64))
+	profileId := uint(claims["profileId"].(float64))
 	roles, ok := claims["roles"].([]interface{})
 	if !ok {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
@@ -183,7 +203,7 @@ func RefreshToken(c *fiber.Ctx) error {
 	}
 
 	// Yeni access token oluştur
-	newAccessToken, err := generateJWT(userId, rolesStr, 15*time.Minute, "access")
+	newAccessToken, err := generateJWT(userId, profileId, rolesStr, 15*time.Minute, "access")
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": "Yeni access token oluşturulamadı",
@@ -206,14 +226,15 @@ func RefreshToken(c *fiber.Ctx) error {
 	})
 }
 
-// generateJWT: userId, role ve süre bilgisiyle JWT üretimi
-func generateJWT(userId uint, roles []string, duration time.Duration, tokenType string) (string, error) {
+// generateJWT: userId, profileId, role ve süre bilgisiyle JWT üretimi
+func generateJWT(userId uint, profileId uint, roles []string, duration time.Duration, tokenType string) (string, error) {
 	claims := jwt.MapClaims{
-		"userId": userId,
-		"roles":  roles,
-		"type":   tokenType,
-		"exp":    time.Now().Add(duration).Unix(),
-		"iat":    time.Now().Unix(),
+		"userId":    userId,
+		"profileId": profileId,
+		"roles":     roles,
+		"type":      tokenType,
+		"exp":       time.Now().Add(duration).Unix(),
+		"iat":       time.Now().Unix(),
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 

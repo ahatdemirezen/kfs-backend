@@ -7,6 +7,7 @@ import (
 	"kfs-backend/models"
 
 	"golang.org/x/crypto/bcrypt"
+	"gorm.io/gorm"
 )
 
 type RegisterRequest struct {
@@ -114,9 +115,22 @@ func UpdateUserInfo(userID uint, userType string, req UpdateUserRequest) (*model
 		return nil, nil, result.Error
 	}
 
+	// Profil kontrolü yap, yoksa oluştur
+	var profile models.Profile
+	result := db.Where("user_id = ?", userID).First(&profile)
+	if result.Error != nil {
+		// Profil bulunamadıysa yeni profil oluştur
+		newProfile := models.Profile{
+			UserId: userID,
+		}
+		if err := db.Create(&newProfile).Error; err != nil {
+			return nil, nil, err
+		}
+	}
+
 	// Kullanıcının mevcut rolünü kontrol et
 	var existingRole models.Role
-	result := db.Where("user_id = ?", userID).First(&existingRole)
+	result = db.Where("user_id = ?", userID).First(&existingRole)
 
 	if result.Error != nil {
 		// Rol bulunamadıysa yeni rol oluştur
@@ -136,4 +150,31 @@ func UpdateUserInfo(userID uint, userType string, req UpdateUserRequest) (*model
 	}
 
 	return &user, &verification, nil
+}
+
+// Kullanıcı ve profil bilgilerini getir
+func GetUser(userId uint) (*models.Profile, error) {
+	db := database.DB
+	var profile models.Profile
+
+	// Kullanıcının profilini ve ilişkili user bilgilerini getir
+	if result := db.Preload("User", func(db *gorm.DB) *gorm.DB {
+		return db.Select("user_id, email, country, phone, first_name, last_name, company_name, tax_office, tax_number, created_at, updated_at")
+	}).Where("user_id = ?", userId).First(&profile); result.Error != nil {
+		// Profil bulunamazsa yeni profil oluştur
+		newProfile := models.Profile{
+			UserId: userId,
+		}
+		if err := db.Create(&newProfile).Error; err != nil {
+			return nil, err
+		}
+		// Yeni oluşturulan profilin user bilgilerini de getir
+		if err := db.Preload("User", func(db *gorm.DB) *gorm.DB {
+			return db.Select("user_id, email, country, phone, first_name, last_name, company_name, tax_office, tax_number, created_at, updated_at")
+		}).First(&profile, newProfile.ProfileId).Error; err != nil {
+			return nil, err
+		}
+	}
+
+	return &profile, nil
 }
