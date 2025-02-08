@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"kfs-backend/services"
-	"net/http"
 
 	// Zaman işlemleri için gerekli paket
 	"github.com/gofiber/fiber/v2"
@@ -24,9 +23,7 @@ func UpdateProfile(c *fiber.Ctx) error {
 
 	// İstek gövdesini parse et
 	if err := c.BodyParser(&req); err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": "Geçersiz istek formatı",
-		})
+		return fiber.NewError(fiber.StatusBadRequest, "Geçersiz istek formatı")
 	}
 
 	userId := c.Locals("userId").(uint)
@@ -42,12 +39,10 @@ func UpdateProfile(c *fiber.Ctx) error {
 	)
 
 	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error": err.Error(),
-		})
+		return err // Service'den gelen fiber.Error'u direkt olarak dön
 	}
 
-	return c.Status(http.StatusOK).JSON(fiber.Map{
+	return c.Status(fiber.StatusOK).JSON(fiber.Map{
 		"message": "Profil başarıyla güncellendi",
 		"profile": profile,
 	})

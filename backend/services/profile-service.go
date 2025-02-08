@@ -1,10 +1,11 @@
 package services
 
 import (
-	"errors"
 	"kfs-backend/database"
 	"kfs-backend/models"
 	"time"
+
+	"github.com/gofiber/fiber/v2"
 )
 
 // Profil güncelleme servisi
@@ -13,13 +14,13 @@ func UpdateProfile(userId uint, photoURL, website, identityNumber, birthDateStr,
 
 	// Kullanıcının profilini bul
 	if err := database.DB.Where("user_id = ?", userId).First(&profile).Error; err != nil {
-		return nil, errors.New("profil bulunamadı")
+		return nil, fiber.NewError(fiber.StatusNotFound, "Profil bulunamadı")
 	}
 
 	// Doğum tarihini string'den time.Time formatına dönüştür
 	birthDate, err := time.Parse("2006-01-02", birthDateStr)
 	if err != nil {
-		return nil, errors.New("doğum tarihi formatı geçersiz. beklenen format: YYYY-MM-DD")
+		return nil, fiber.NewError(fiber.StatusBadRequest, "Doğum tarihi formatı geçersiz. Beklenen format: YYYY-MM-DD")
 	}
 
 	// Profili güncelle
@@ -32,7 +33,7 @@ func UpdateProfile(userId uint, photoURL, website, identityNumber, birthDateStr,
 
 	// Güncellemeyi veritabanına kaydet
 	if err := database.DB.Save(&profile).Error; err != nil {
-		return nil, errors.New("profil güncellenirken bir hata oluştu")
+		return nil, fiber.NewError(fiber.StatusInternalServerError, "Profil güncellenirken bir hata oluştu")
 	}
 
 	return &profile, nil
