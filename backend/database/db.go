@@ -26,6 +26,17 @@ func migrateIfNotExists(db *gorm.DB) error {
 		{&models.Profile{}, "profiles"},
 		{&models.Verification{}, "verifications"},
 		{&models.Role{}, "roles"},
+		{&models.AnalysisInfo{}, "analysis_info"},
+		{&models.Pros{}, "pros"},
+		{&models.Cons{}, "cons"},
+		{&models.MarketInfo{}, "market_info"},
+		{&models.OtherMarketTopic{}, "other_market_topics"},
+		{&models.ProductModelInfo{}, "product_model_info"},
+		{&models.OtherProductTopic{}, "other_product_topics"},
+		{&models.Opportunity{}, "opportunities"},
+		{&models.Threat{}, "threats"},
+		{&models.ConsPlan{}, "cons_plans"},
+		{&models.ThreatPlan{}, "threat_plans"},
 	}
 
 	// Her model için ayrı ayrı migrasyon yap
@@ -63,9 +74,9 @@ func ConnectDB() {
 	// GORM konfigürasyonu
 	gormConfig := &gorm.Config{
 		DisableForeignKeyConstraintWhenMigrating: true,
-		PrepareStmt: false, // Prepared statement'ları devre dışı bırak
-		Logger: logger.Default.LogMode(logger.Silent), // SQL loglarını kapat
-		SkipDefaultTransaction: true, // Varsayılan transaction'ları devre dışı bırak
+		PrepareStmt:                              false,                                 // Prepared statement'ları devre dışı bırak
+		Logger:                                   logger.Default.LogMode(logger.Silent), // SQL loglarını kapat
+		SkipDefaultTransaction:                   true,                                  // Varsayılan transaction'ları devre dışı bırak
 	}
 
 	// Veritabanına bağlan

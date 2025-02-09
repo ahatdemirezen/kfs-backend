@@ -5,7 +5,7 @@ import (
 
 	"kfs-backend/config"
 	"kfs-backend/database" // Veritabanı bağlantısı
-	"kfs-backend/routes"
+	"kfs-backend/routes"   // Route'lar
 
 	"github.com/gofiber/fiber/v2" // Fiber framework
 	"github.com/gofiber/fiber/v2/middleware/cors"
@@ -31,7 +31,18 @@ func main() {
 
 	// Tüm route'ları ayarla
 	routes.SetupAuthRoutes(app)
-	routes.SetupUserRoutes(app)  // User routes'ları ekle
+	routes.SetupUserRoutes(app)              // User routes'ları ekle
+	routes.SetupAnalysisInfoRoutes(app)      // AnalysisInfo routes'ları ekle
+	routes.SetupProsRoutes(app)              // Pros için route'ları ekle
+	routes.SetupConsRoutes(app)              // Cons için route'ları ekle
+	routes.SetupConsPlansRoutes(app)         // ConsPlans için route'ları ekle
+	routes.SetupOpportunitiesRoutes(app)     // Opportunities için route'ları ekle
+	routes.SetupThreatsRoutes(app)           // Threats için route'ları ekle
+	routes.SetupThreatPlansRoutes(app)       // ThreatPlans için route'ları ekle
+	routes.SetupMarketInfoRoutes(app)        // MarketInfo için route'ları ekle
+	routes.SetupOtherMarketTopicRoutes(app)  // OtherMarketTopic için route'ları ekle
+	routes.SetupProductModelInfoRoutes(app)  // ProductModelInfo için route'ları ekle
+	routes.SetupOtherProductTopicRoutes(app) // OtherProductTopic için route'ları ekle
 
 	// Debug için tüm route'ları yazdır
 	for _, route := range app.GetRoutes() {
