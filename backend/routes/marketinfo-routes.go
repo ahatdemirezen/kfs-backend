@@ -9,7 +9,7 @@ import (
 func SetupMarketInfoRoutes(app *fiber.App) {
 	marketInfos := app.Group("/api/marketinfos")
 
-	marketInfos.Post("/", handlers.CreateMarketInfo)
+	marketInfos.Post("/create", handlers.CreateMarketInfo)
 	marketInfos.Get("/:marketInfoId", handlers.GetMarketInfo)
 	marketInfos.Get("/campaign/:campaignId", handlers.GetMarketInfosByCampaign)
 	marketInfos.Put("/:marketInfoId", handlers.UpdateMarketInfo)

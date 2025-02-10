@@ -7,16 +7,26 @@ import (
 )
 
 // MarketInfo oluştur
-func CreateMarketInfo(marketInfo *models.MarketInfo) error {
+func CreateMarketInfo(marketInfo *models.MarketInfo) (*models.MarketInfo, error) {
 	db := database.DB
 
 	// Campaign'in varlığını kontrol et
 	var campaign models.Campaign
 	if err := db.First(&campaign, "campaign_id = ?", marketInfo.CampaignId).Error; err != nil {
-		return errors.New("related Campaign not found")
+		return nil, errors.New("related Campaign not found")
 	}
 
-	return db.Create(marketInfo).Error
+	// MarketInfo oluştur
+	if err := db.Create(marketInfo).Error; err != nil {
+		return nil, err
+	}
+
+	// Preload işlemi ile ilişkileri doldur
+	if err := db.Preload("Campaign").Find(marketInfo).Error; err != nil {
+		return nil, err
+	}
+
+	return marketInfo, nil
 }
 
 // ID'ye göre MarketInfo getir
@@ -24,7 +34,8 @@ func GetMarketInfoByID(id uint) (*models.MarketInfo, error) {
 	db := database.DB
 	var marketInfo models.MarketInfo
 
-	err := db.First(&marketInfo, "market_info_id = ?", id).Error
+	// Preload işlemi ile Campaign ilişkisini getir
+	err := db.Preload("Campaign").First(&marketInfo, "market_info_id = ?", id).Error
 	if err != nil {
 		return nil, errors.New("market info not found")
 	}
@@ -37,7 +48,8 @@ func GetMarketInfosByCampaignID(campaignId uint) ([]models.MarketInfo, error) {
 	db := database.DB
 	var marketInfos []models.MarketInfo
 
-	err := db.Where("campaign_id = ?", campaignId).Find(&marketInfos).Error
+	// Campaign ile ilişkili MarketInfo'ları getir ve Campaign ilişkisini doldur
+	err := db.Where("campaign_id = ?", campaignId).Preload("Campaign").Find(&marketInfos).Error
 	if err != nil {
 		return nil, err
 	}
@@ -46,9 +58,20 @@ func GetMarketInfosByCampaignID(campaignId uint) ([]models.MarketInfo, error) {
 }
 
 // MarketInfo güncelle
-func UpdateMarketInfo(marketInfo *models.MarketInfo) error {
+func UpdateMarketInfo(marketInfo *models.MarketInfo) (*models.MarketInfo, error) {
 	db := database.DB
-	return db.Save(marketInfo).Error
+
+	// MarketInfo güncelle
+	if err := db.Save(marketInfo).Error; err != nil {
+		return nil, err
+	}
+
+	// Güncellenmiş kaydı Campaign ilişkisiyle birlikte getir
+	if err := db.Preload("Campaign").Find(marketInfo, "market_info_id = ?", marketInfo.MarketInfoId).Error; err != nil {
+		return nil, err
+	}
+
+	return marketInfo, nil
 }
 
 // MarketInfo sil
