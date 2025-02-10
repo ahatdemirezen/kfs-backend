@@ -9,7 +9,7 @@ import (
 func SetupOtherMarketTopicRoutes(app *fiber.App) {
 	topics := app.Group("/api/othermarkettopics")
 
-	topics.Post("/", handlers.CreateOtherMarketTopic)
+	topics.Post("/create", handlers.CreateOtherMarketTopic)
 	topics.Get("/:topicId", handlers.GetOtherMarketTopic)
 	topics.Get("/marketinfo/:marketInfoId", handlers.GetOtherMarketTopicsByMarketInfo)
 	topics.Put("/:topicId", handlers.UpdateOtherMarketTopic)

@@ -24,7 +24,8 @@ func GetOtherMarketTopicByID(id uint) (*models.OtherMarketTopic, error) {
 	db := database.DB
 	var topic models.OtherMarketTopic
 
-	err := db.First(&topic, "topic_id = ?", id).Error
+	// MarketInfo'yu ve bağlı olduğu Campaign bilgisini preload et
+	err := db.Preload("MarketInfo.Campaign").First(&topic, "topic_id = ?", id).Error
 	if err != nil {
 		return nil, errors.New("other market topic not found")
 	}
@@ -37,7 +38,8 @@ func GetOtherMarketTopicsByMarketInfoID(marketInfoId uint) ([]models.OtherMarket
 	db := database.DB
 	var topics []models.OtherMarketTopic
 
-	err := db.Where("market_info_id = ?", marketInfoId).Find(&topics).Error
+	// MarketInfo'yu ve bağlı olduğu Campaign bilgisini preload et
+	err := db.Preload("MarketInfo.Campaign").Where("market_info_id = ?", marketInfoId).Find(&topics).Error
 	if err != nil {
 		return nil, err
 	}
