@@ -9,7 +9,7 @@ import (
 func SetupOtherProductTopicRoutes(app *fiber.App) {
 	topics := app.Group("/api/otherproducttopics")
 
-	topics.Post("/", handlers.CreateOtherProductTopic)
+	topics.Post("/create", handlers.CreateOtherProductTopic)
 	topics.Get("/:topicId", handlers.GetOtherProductTopic)
 	topics.Get("/productmodelinfo/:productModelInfoId", handlers.GetOtherProductTopicsByProductModelInfo)
 	topics.Put("/:topicId", handlers.UpdateOtherProductTopic)

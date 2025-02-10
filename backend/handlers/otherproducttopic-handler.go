@@ -12,19 +12,23 @@ import (
 func CreateOtherProductTopic(c *fiber.Ctx) error {
 	var topic models.OtherProductTopic
 
+	// İstek gövdesini parse et
 	if err := c.BodyParser(&topic); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": "Invalid request body",
 		})
 	}
 
-	if err := services.CreateOtherProductTopic(&topic); err != nil {
+	// Servis fonksiyonunu çağır ve dönen topic'i al
+	createdTopic, err := services.CreateOtherProductTopic(&topic)
+	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": err.Error(),
 		})
 	}
 
-	return c.Status(fiber.StatusCreated).JSON(topic)
+	// Oluşturulan kaydı dön
+	return c.Status(fiber.StatusCreated).JSON(createdTopic)
 }
 
 // ID'ye göre OtherProductTopic getir

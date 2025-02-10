@@ -7,16 +7,26 @@ import (
 )
 
 // OtherProductTopic oluştur
-func CreateOtherProductTopic(topic *models.OtherProductTopic) error {
+func CreateOtherProductTopic(topic *models.OtherProductTopic) (*models.OtherProductTopic, error) {
 	db := database.DB
 
 	// ProductModelInfo'nun varlığını kontrol et
 	var productModelInfo models.ProductModelInfo
 	if err := db.First(&productModelInfo, "product_model_info_id = ?", topic.ProductModelInfoId).Error; err != nil {
-		return errors.New("related ProductModelInfo not found")
+		return nil, errors.New("related ProductModelInfo not found")
 	}
 
-	return db.Create(topic).Error
+	// Yeni OtherProductTopic oluştur
+	if err := db.Create(topic).Error; err != nil {
+		return nil, err
+	}
+
+	// Oluşturulan kaydı ProductModelInfo ve Campaign ile preload ederek geri dön
+	if err := db.Preload("ProductModelInfo.Campaign").First(topic, "topic_id = ?", topic.TopicId).Error; err != nil {
+		return nil, err
+	}
+
+	return topic, nil
 }
 
 // ID'ye göre OtherProductTopic getir
@@ -24,7 +34,8 @@ func GetOtherProductTopicByID(id uint) (*models.OtherProductTopic, error) {
 	db := database.DB
 	var topic models.OtherProductTopic
 
-	err := db.First(&topic, "topic_id = ?", id).Error
+	// ProductModelInfo ve bağlı Campaign'i preload edin
+	err := db.Preload("ProductModelInfo.Campaign").First(&topic, "topic_id = ?", id).Error
 	if err != nil {
 		return nil, errors.New("other product topic not found")
 	}
@@ -37,7 +48,8 @@ func GetOtherProductTopicsByProductModelInfoID(productModelInfoId uint) ([]model
 	db := database.DB
 	var topics []models.OtherProductTopic
 
-	err := db.Where("product_model_info_id = ?", productModelInfoId).Find(&topics).Error
+	// Preload ile ilişkili ProductModelInfo'yu da getir
+	err := db.Preload("ProductModelInfo").Where("product_model_info_id = ?", productModelInfoId).Find(&topics).Error
 	if err != nil {
 		return nil, err
 	}
