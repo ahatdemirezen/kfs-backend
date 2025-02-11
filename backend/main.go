@@ -5,8 +5,9 @@ import (
 
 	"kfs-backend/config"
 	"kfs-backend/database" // Veritabanı bağlantısı
-	"kfs-backend/routes"
 	"kfs-backend/middleware"
+	"kfs-backend/routes"
+
 	"github.com/gofiber/fiber/v2" // Fiber framework
 	"github.com/gofiber/fiber/v2/middleware/cors"
 )
@@ -19,10 +20,9 @@ func main() {
 
 	// CORS middleware'ini ekle
 	app.Use(cors.New())
- 
+
 	// Config yükle
 	config.LoadConfig()
-
 
 	// Veritabanı bağlantısını başlat
 	database.ConnectDB()
@@ -38,7 +38,7 @@ func main() {
 	routes.SetupProfileRoutes(app)      // Profil rotaları
 	routes.SetupAuthRoutes(app)         // auth route'larını kaydet
 	routes.SetupVerificationRoutes(app) // verification route'larını kaydet
-
+	routes.SetupInvestmentRoutes(app)   // investment route'larını kaydet
 	// Debug için tüm route'ları yazdır
 	for _, route := range app.GetRoutes() {
 		log.Printf("Route: %s %s", route.Method, route.Path)

@@ -23,7 +23,7 @@ func IsInvestorMiddleware(c *fiber.Ctx) error {
 			break
 		}
 	}
-
+	
 	if !isAuthorized {
 		log.Println("HATA: Yetkisiz erişim - Kullanıcı rolü uygun değil")
 		return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
