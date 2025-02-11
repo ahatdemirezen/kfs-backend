@@ -1,8 +1,7 @@
 package handlers
 
 import (
-	"kfs-backend/database"
-	"kfs-backend/models"
+	"kfs-backend/services"
 	"strconv"
 	"time"
 
@@ -24,9 +23,7 @@ type InvestmentResponse struct {
 func CreateInvestment(c *fiber.Ctx) error {
 	var request CreateInvestmentRequest
 	if err := c.BodyParser(&request); err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": "İstek gövdesi ayrıştırılamadı",
-		})
+		return fiber.NewError(fiber.StatusBadRequest, "İstek gövdesi ayrıştırılamadı")
 	}
 
 	// User ID'yi Locals'tan al
@@ -35,23 +32,13 @@ func CreateInvestment(c *fiber.Ctx) error {
 	// Campaign ID'yi URL'den al
 	campaignID, err := strconv.ParseUint(c.Params("campaignId"), 10, 32)
 	if err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": "Geçersiz kampanya ID'si",
-		})
+		return fiber.NewError(fiber.StatusBadRequest, "Geçersiz kampanya ID'si")
 	}
 
-	// Yeni yatırım oluştur
-	investment := models.Investment{
-		UserId:     userID,
-		CampaignId: uint(campaignID),
-		Balance:    request.Balance,
-	}
-
-	// Veritabanına kaydet
-	if err := database.DB.Create(&investment).Error; err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error": "Yatırım oluşturulurken bir hata oluştu",
-		})
+	// Servisi çağır
+	investment, err := services.CreateInvestment(userID, uint(campaignID), request.Balance)
+	if err != nil {
+		return err // Service'den gelen hatayı doğrudan ilet
 	}
 
 	response := InvestmentResponse{
@@ -71,11 +58,10 @@ func CreateInvestment(c *fiber.Ctx) error {
 func GetInvestments(c *fiber.Ctx) error {
 	userID := c.Locals("userId").(uint)
 
-	var investments []models.Investment
-	if err := database.DB.Where("user_id = ?", userID).Find(&investments).Error; err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error": "Yatırımlar alınamadı",
-		})
+	// Servisi çağır
+	investments, err := services.GetUserInvestments(userID)
+	if err != nil {
+		return err // Service'den gelen hatayı doğrudan ilet
 	}
 
 	var response []InvestmentResponse
@@ -93,11 +79,10 @@ func GetInvestments(c *fiber.Ctx) error {
 }
 
 func GetAllInvestments(c *fiber.Ctx) error {
-	var investments []models.Investment
-	if err := database.DB.Find(&investments).Error; err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error": "Yatırımlar alınamadı",
-		})
+	// Servisi çağır
+	investments, err := services.GetAllInvestments()
+	if err != nil {
+		return err // Service'den gelen hatayı doğrudan ilet
 	}
 
 	var response []InvestmentResponse
@@ -110,5 +95,6 @@ func GetAllInvestments(c *fiber.Ctx) error {
 			CreatedAt:    inv.CreatedAt,
 		})
 	}
+
 	return c.Status(fiber.StatusOK).JSON(response)
 }
