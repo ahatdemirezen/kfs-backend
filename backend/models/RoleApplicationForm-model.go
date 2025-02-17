@@ -25,6 +25,7 @@ type RoleApplicationForm struct {
 	ResumeKey       string    `gorm:"type:text;column:resume_key"`
 	MkkNumber       string    `gorm:"type:text;column:mkk_number"`
 	IncomeStatement int       `gorm:"type:int;column:income_statement"`
+	Status          string    `gorm:"type:varchar(50);column:status"`
 	CreatedAt       time.Time `gorm:"type:timestamp;default:CURRENT_TIMESTAMP;column:created_at"`
 	UpdatedAt       time.Time `gorm:"type:timestamp;default:CURRENT_TIMESTAMP;column:updated_at"`
 
