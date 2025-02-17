@@ -39,6 +39,8 @@ func main() {
 	routes.SetupAuthRoutes(app)         // auth route'larını kaydet
 	routes.SetupVerificationRoutes(app) // verification route'larını kaydet
 	routes.SetupInvestmentRoutes(app)   // investment route'larını kaydet
+	routes.SetupAdminRoutes(app)		// superAdmin route'larını kaydet
+
 	// Debug için tüm route'ları yazdır
 	for _, route := range app.GetRoutes() {
 		log.Printf("Route: %s %s", route.Method, route.Path)
