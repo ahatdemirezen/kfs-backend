@@ -1,8 +1,10 @@
 package services
 
 import (
-	"fmt"
 	"os"
+	"strconv"
+
+	"github.com/gofiber/fiber/v2"
 	"github.com/sendgrid/sendgrid-go"
 	"github.com/sendgrid/sendgrid-go/helpers/mail"
 )
@@ -10,37 +12,27 @@ import (
 func SendVerificationEmail(recipientEmail string, verificationCode string) error {
 	apiKey := os.Getenv("SENDGRID_API_KEY")
 	if apiKey == "" {
-		return fmt.Errorf("SendGrid API anahtarı bulunamadı")
+		return fiber.NewError(fiber.StatusInternalServerError, "SendGrid API anahtarı bulunamadı")
 	}
-
-	fmt.Printf("SendGrid API Key: %s\n", apiKey[:10]) // API key'in sadece ilk 10 karakterini göster
 
 	fromEmail := "ahat@jxpuniworkhub.com"
-	
-	fmt.Printf("Gönderen email: %s\n", fromEmail)
-	
-	from := mail.NewEmail("", fromEmail) // İsim boş string olarak verildi
+	from := mail.NewEmail("", fromEmail)
 	subject := "Email Doğrulama Kodu"
-	to := mail.NewEmail("", recipientEmail) // Alıcı ismi de boş string
-	
-	plainTextContent := fmt.Sprintf("Doğrulama kodunuz: %s", verificationCode)
-	
+	to := mail.NewEmail("", recipientEmail)
+
+	plainTextContent := "Doğrulama kodunuz: " + verificationCode
+
 	message := mail.NewSingleEmail(from, subject, to, plainTextContent, "")
 	client := sendgrid.NewSendClient(apiKey)
-	
-	fmt.Printf("Email gönderme isteği hazırlandı. Alıcı: %s\n", recipientEmail)
-	
+
 	response, err := client.Send(message)
 	if err != nil {
-		fmt.Printf("SendGrid Hata: %v\n", err)
-		return fmt.Errorf("email gönderme hatası: %v", err)
+		return fiber.NewError(fiber.StatusInternalServerError, "Email gönderme hatası: "+err.Error())
 	}
-	
-	fmt.Printf("SendGrid Response - Status: %d, Body: %s\n", response.StatusCode, response.Body)
-	
+
 	if response.StatusCode >= 400 {
-		return fmt.Errorf("email gönderme başarısız. Status: %d, Body: %s", response.StatusCode, response.Body)
+		return fiber.NewError(fiber.StatusInternalServerError, "Email gönderme başarısız. Status: "+strconv.Itoa(response.StatusCode))
 	}
-	
+
 	return nil
 }

@@ -13,6 +13,9 @@ type Config struct {
 	SupabasePassword string
 	SupabaseDBName   string
 	SupabasePort     string
+	JwtSecret        string
+	JwtSecretRefresh string
+	NodeEnv          string
 }
 
 var AppConfig *Config
@@ -31,6 +34,9 @@ func LoadConfig() {
 		SupabasePassword: os.Getenv("SUPABASE_PASSWORD"),
 		SupabaseDBName:   os.Getenv("SUPABASE_DBNAME"),
 		SupabasePort:     os.Getenv("SUPABASE_PORT"),
+		JwtSecret:        os.Getenv("JWT_SECRET"),
+		JwtSecretRefresh: os.Getenv("JWT_SECRET_REFRESH"),
+		NodeEnv:          os.Getenv("NODE_ENV"),
 	}
 
 	log.Println("Config dosyası başarıyla yüklendi")

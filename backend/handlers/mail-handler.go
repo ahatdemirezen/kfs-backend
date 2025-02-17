@@ -1,12 +1,12 @@
 package handlers
 
 import (
-	"fmt"
-	"github.com/gofiber/fiber/v2"
 	"kfs-backend/services"
 	"math/rand"
 	"strconv"
 	"sync"
+
+	"github.com/gofiber/fiber/v2"
 )
 
 type SendVerificationEmailRequest struct {
@@ -20,11 +20,7 @@ var codesLock sync.RWMutex
 func SendVerificationEmail(c *fiber.Ctx) error {
 	var req SendVerificationEmailRequest
 	if err := c.BodyParser(&req); err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": "İstek formatı geçersiz",
-			"details": err.Error(),
-			"success": false,
-		})
+		return fiber.NewError(fiber.StatusBadRequest, "İstek formatı geçersiz")
 	}
 
 	// 6 haneli rastgele bir doğrulama kodu oluştur
@@ -37,18 +33,13 @@ func SendVerificationEmail(c *fiber.Ctx) error {
 
 	// Email gönder
 	if err := services.SendVerificationEmail(req.Email, verificationCode); err != nil {
-		fmt.Printf("Email gönderme hatası: %v\n", err)
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error": "Email gönderilirken bir hata oluştu",
-			"details": err.Error(),
-			"success": false,
-		})
+		return err // Service'den gelen fiber.Error'u direkt olarak dön
 	}
 
 	return c.Status(fiber.StatusOK).JSON(fiber.Map{
 		"message": "Doğrulama kodu başarıyla gönderildi",
 		"success": true,
-		"email": req.Email,
+		"email":   req.Email,
 	})
 }
 
@@ -57,7 +48,6 @@ func VerifyCode(email, code string) bool {
 	codesLock.RLock()
 	savedCode, exists := verificationCodes[email]
 	codesLock.RUnlock()
-	fmt.Printf("Doğrulama kodu kontrolü - Email: %s, Kullanıcının girdiği kod: %s, Kaydedilen kod: %s, Exists: %v\n", email, code, savedCode, exists)
 
 	if exists && savedCode == code {
 		codesLock.Lock()
@@ -66,4 +56,4 @@ func VerifyCode(email, code string) bool {
 		return true
 	}
 	return false
-} 
+}

@@ -26,6 +26,7 @@ func migrateIfNotExists(db *gorm.DB) error {
 		{&models.Profile{}, "profiles"},
 		{&models.Verification{}, "verifications"},
 		{&models.Role{}, "roles"},
+		{&models.Investment{}, "investments"},
 	}
 
 	// Her model için ayrı ayrı migrasyon yap

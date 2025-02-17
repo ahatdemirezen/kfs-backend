@@ -5,7 +5,8 @@ import (
 
 	"kfs-backend/config"
 	"kfs-backend/database" // Veritabanı bağlantısı
-	"kfs-backend/routes"   // Route'lar
+	"kfs-backend/middleware"
+	"kfs-backend/routes"
 
 	"github.com/gofiber/fiber/v2" // Fiber framework
 	"github.com/gofiber/fiber/v2/middleware/cors"
@@ -13,7 +14,9 @@ import (
 
 func main() {
 	// Fiber uygulamasını başlat
-	app := fiber.New()
+	app := fiber.New(fiber.Config{
+		ErrorHandler: middleware.ErrorHandler,
+	})
 
 	// CORS middleware'ini ekle
 	app.Use(cors.New())
