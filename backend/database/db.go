@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"kfs-backend/config" // Config paketini içe aktar
+
 	"kfs-backend/models"
 
 	"gorm.io/driver/postgres"
@@ -43,6 +44,13 @@ func migrateIfNotExists(db *gorm.DB) error {
 			log.Printf("%s tablosu başarıyla migrate edildi", migration.Name)
 		}
 	}
+
+	session := db.Session(&gorm.Session{PrepareStmt: true})
+	if session.Error != nil {
+		fmt.Println("Session error: ", session.Error)
+	} else {
+		fmt.Println("Session created successfully")
+	}
 	return nil
 }
 
@@ -63,7 +71,7 @@ func ConnectDB() {
 	// GORM konfigürasyonu
 	gormConfig := &gorm.Config{
 		DisableForeignKeyConstraintWhenMigrating: true,
-		PrepareStmt: false, // Prepared statement'ları devre dışı bırak
+		PrepareStmt: true, // Prepared statement'ları devre dışı bırak
 		Logger: logger.Default.LogMode(logger.Silent), // SQL loglarını kapat
 		SkipDefaultTransaction: true, // Varsayılan transaction'ları devre dışı bırak
 	}

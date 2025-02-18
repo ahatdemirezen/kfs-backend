@@ -17,7 +17,7 @@ type EnterpriseInfo struct {
 	UpdatedAt         time.Time `gorm:"type:timestamp;default:CURRENT_TIMESTAMP;column:updated_at"`
 
 	// İlişkiler
-	Campaign Campaign `gorm:"foreignKey:CampaignId;references:CampaignId"`
+	Campaign Campaign `gorm:"foreignKey:CampaignId;references:CampaignId" json:"-"`
 }
 
 // TableName tablosunun adını belirtir

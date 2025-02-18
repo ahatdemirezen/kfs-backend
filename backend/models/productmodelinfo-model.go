@@ -17,20 +17,20 @@ type ProductModelInfo struct {
 	AboutProcess       string    `gorm:"type:text;column:about_process"`
 	AboutSideProduct   string    `gorm:"type:text;column:about_side_product"`
 	TechnicalAnalyses  string    `gorm:"type:text;column:technical_analyses"`
-	ArgeSummary       string    `gorm:"type:text;column:angel_summary"`
+	ArgeSummary       string    `gorm:"type:text;column:arge_summary"`
 	PreviousSales      string    `gorm:"type:text;column:previous_sales"`
 	AboutProductKey    string    `gorm:"type:text;column:about_product_key"`
 	ProcessSummaryKey  string    `gorm:"type:text;column:process_summary_key"`
 	AboutProcessKey    string    `gorm:"type:text;column:about_process_key"`
 	AboutSideKey       string    `gorm:"type:text;column:about_side_key"`
 	TechnicalAnalysesKey string  `gorm:"type:text;column:technical_analyses_key"`
-	ArgeSummaryKey    string    `gorm:"type:text;column:angel_summary_key"`
+	ArgeSummaryKey    string    `gorm:"type:text;column:arge_summary_key"`
 	PreviousSalesKey   string    `gorm:"type:text;column:previous_sales_key"`
 	CreatedAt          time.Time `gorm:"type:timestamp;default:CURRENT_TIMESTAMP;column:created_at"`
 	UpdatedAt          time.Time `gorm:"type:timestamp;default:CURRENT_TIMESTAMP;column:updated_at"`
 
 	// Campaign tablosu ile ilişkilendirme
-	Campaign Campaign `gorm:"foreignKey:CampaignId;references:CampaignId"`
+	Campaign Campaign `gorm:"foreignKey:CampaignId;references:CampaignId" json:"-"`
 }
 
 // TableName tablosunun adını belirtir

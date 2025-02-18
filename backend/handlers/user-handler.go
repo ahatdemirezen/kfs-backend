@@ -5,7 +5,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 	"kfs-backend/database"
 	"kfs-backend/models"
-	"kfs-backend/service"
+	"kfs-backend/services"
 	"crypto/rand"
 	"encoding/hex"
 	"time"
@@ -101,7 +101,7 @@ func Register(c *fiber.Ctx) error {
 	}
 
 	// Doğrulama kodu oluştur
-	verificationCode := service.GenerateVerificationCode()
+	verificationCode := services.GenerateVerificationCode()
 	
 	// Verification kaydı oluştur
 	verification := models.Verification{
@@ -122,7 +122,7 @@ func Register(c *fiber.Ctx) error {
 	}
 
 	// Email gönder
-	if err := service.SendVerificationEmail(user.Email, verificationCode); err != nil {
+	if err := services.SendVerificationEmail(user.Email, verificationCode); err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": "Doğrulama e-postası gönderilirken bir hata oluştu",
 			"details": err.Error(),

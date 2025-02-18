@@ -15,7 +15,7 @@ type OtherMarketTopic struct {
 	UpdatedAt    time.Time `gorm:"type:timestamp;default:CURRENT_TIMESTAMP;column:updated_at"`
 
 	// MarketInfo tablosu ile ilişkilendirme
-	MarketInfo MarketInfo `gorm:"foreignKey:MarketInfoId;references:MarketInfoId"`
+	MarketInfo MarketInfo `gorm:"foreignKey:MarketInfoId;references:MarketInfoId" json:"-"`
 }
 
 // TableName tablosunun adını belirtir

@@ -13,7 +13,7 @@ type Threat struct {
 	UpdatedAt      time.Time `gorm:"type:timestamp;default:CURRENT_TIMESTAMP;column:updated_at"`
 
 	// AnalysisInfo tablosu ile ilişkilendirme
-	AnalysisInfo AnalysisInfo `gorm:"foreignKey:AnalysisInfoId;references:AnalysisInfoId"`
+	AnalysisInfo AnalysisInfo `gorm:"foreignKey:AnalysisInfoId;references:AnalysisInfoId" json:"-"`
 }
 
 // TableName tablosunun adını belirtir
