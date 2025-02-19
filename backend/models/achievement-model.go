@@ -16,7 +16,7 @@ type Achievement struct {
 	UpdatedAt     time.Time `gorm:"type:timestamp;default:CURRENT_TIMESTAMP;column:updated_at"`
 
 	// Campaign tablosu ile ilişkilendirme
-	Campaign Campaign `gorm:"foreignKey:CampaignId;references:CampaignId"`
+	Campaign Campaign `gorm:"foreignKey:CampaignId;references:CampaignId" json:"-"`
 }
 
 // TableName tablosunun adını belirtir

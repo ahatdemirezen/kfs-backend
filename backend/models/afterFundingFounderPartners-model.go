@@ -26,7 +26,7 @@ type AfterFundingFounderPartner struct {
 	UpdatedAt              time.Time `gorm:"type:timestamp;default:CURRENT_TIMESTAMP;column:updated_at"`
 
 	// İlişkiler
-	EnterpriseInfo EnterpriseInfo `gorm:"foreignKey:EnterpriseInfoId;references:EnterpriseInfoId"`
+	EnterpriseInfo EnterpriseInfo `gorm:"foreignKey:EnterpriseInfoId;references:EnterpriseInfoId" json:"-"`
 }
 
 // TableName tablosunun adını belirtir

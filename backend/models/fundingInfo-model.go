@@ -13,14 +13,14 @@ type FundingInfo struct {
 	FundingMonths        int       `gorm:"not null;column:funding_months"`         // Fonun geçerli olduğu ay sayısı
 	EvaluationReportKey  string    `gorm:"type:text;column:evaluation_report_key"` // Değerlendirme raporu
 	SharePercentage      int       `gorm:"not null;column:share_percentage"`       // Pay yüzdesi
-	ExtraFunding         bool      `gorm:"default:false;column:extra_funding"`     // Ek fon gereksinimi
+	ExtraFunding         *bool      `gorm:"type:boolean;not null;column:extra_funding"`     // Ek fon gereksinimi
 	ComparingPartnership string    `gorm:"type:text;column:comparing_partnership"` // Karşılaştırmalı ortaklık bilgisi
 	GeneralReason        string    `gorm:"type:text;column:general_reason"`        // Genel açıklama/yorum
 	CreatedAt            time.Time `gorm:"type:timestamp;default:CURRENT_TIMESTAMP;column:created_at"`
 	UpdatedAt            time.Time `gorm:"type:timestamp;default:CURRENT_TIMESTAMP;column:updated_at"`
 
 	// İlişkiler
-	Campaign Campaign `gorm:"foreignKey:CampaignId;references:CampaignId"`
+	Campaign Campaign `gorm:"foreignKey:CampaignId;references:CampaignId" json:"-"`
 }
 
 // TableName tablosunun adını belirtir

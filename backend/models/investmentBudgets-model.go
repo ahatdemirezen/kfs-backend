@@ -6,7 +6,7 @@ import (
 
 // InvestmentBudgets modeli
 type InvestmentBudgets struct {
-	BudgetsId       uint      `gorm:"primaryKey;autoIncrement;column:id"`         // Primary key
+	BudgetsId       uint      `gorm:"primaryKey;autoIncrement;column:budgets_id"` // Primary key
 	CampaignId      uint      `gorm:"not null;column:campaign_id"`                // Foreign key
 	YearOneBudget   int       `gorm:"type:int;not null;column:year_one_budget"`   // 1. yıl bütçesi
 	YearTwoBudget   int       `gorm:"type:int;not null;column:year_two_budget"`   // 2. yıl bütçesi
@@ -17,7 +17,7 @@ type InvestmentBudgets struct {
 	UpdatedAt       time.Time `gorm:"type:timestamp;default:CURRENT_TIMESTAMP;column:updated_at"`
 
 	// Campaign tablosu ile ilişkilendirme
-	Campaign Campaign `gorm:"foreignKey:CampaignId;references:CampaignId"`
+	Campaign Campaign `gorm:"foreignKey:CampaignId;references:CampaignId" json:"-"`
 }
 
 // TableName tablosunun adını belirtir
