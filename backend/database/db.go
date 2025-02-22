@@ -28,6 +28,8 @@ func migrateIfNotExists(db *gorm.DB) error {
 		{&models.Verification{}, "verifications"},
 		{&models.Role{}, "roles"},
 		{&models.Investment{}, "investments"},
+		{&models.RoleApplicationForm{}, "role_application_forms"},
+		{&models.Investment{}, "investments"},
 	}
 
 	// Her model için ayrı ayrı migrasyon yap

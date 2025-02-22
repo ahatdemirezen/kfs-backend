@@ -7,7 +7,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
-func SetupRoutes(app *fiber.App) {
+func SetupRoleappRoutes(app *fiber.App) {
 	roleapp := app.Group("/api/roleapp")
 
 	roleapp.Post("/",

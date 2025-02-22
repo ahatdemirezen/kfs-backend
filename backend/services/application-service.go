@@ -1,57 +1,68 @@
 package services
 
 import (
-	"kfs-backend/database"
 	"errors"
+	"kfs-backend/database"
+	"kfs-backend/models"
+	"log"
 )
 
-// Kullanıcının başvurusunun varlığını kontrol et
+// Check if a user's application exists
 func IsApplicationExists(userId int, applicationType string) (bool, error) {
-	query := `
-		SELECT COUNT(*)
-		FROM roleapplicationforms
-		WHERE userId = $1 AND applicationType = $2
-	`
-	var count int
-	err := database.DB.Raw(query, userId, applicationType).Scan(&count).Error
-	if err != nil {
-		return false, err
+	var count int64
+	result := database.DB.Model(&models.RoleApplicationForm{}).
+		Where("user_id = ? AND application_type = ?", userId, applicationType).
+		Count(&count)
+	if result.Error != nil {
+		return false, result.Error
 	}
 	return count > 0, nil
 }
 
-// Kullanıcı doğrulama durumu kontrolü
 func IsUserVerified(userId int) (bool, error) {
-	query := "SELECT isUserVerified FROM verification WHERE userId = $1"
-	var isVerified bool
-	err := database.DB.Raw(query, userId).Scan(&isVerified).Error
-	if err != nil {
-		return false, err
+	var verification models.Verification
+	result := database.DB.Where("user_id = ?", userId).First(&verification)
+
+	if result.Error != nil {
+		log.Printf("Verification check error: %v", result.Error)
+		return false, result.Error
 	}
-	return isVerified, nil
+
+	// Güncellenmiş veriyi terminalde görmek için log ekleyelim
+	log.Printf("DB'den çekilen veri - UserID: %d, isUserVerified: %v", userId, verification.IsUserVerified)
+
+	return verification.IsUserVerified, nil
 }
 
-// Role başvurusu oluşturma
+// Create a role application
 func CreateRoleApplication(userId int, applicationType string) error {
-	// Başvurunun zaten var olup olmadığını kontrol et
+	log.Printf("Başvuru süreci başladı - UserID: %d, ApplicationType: %s", userId, applicationType)
+
+	// 1️⃣ Kullanıcı daha önce başvuru yapmış mı kontrol et
 	exists, err := IsApplicationExists(userId, applicationType)
 	if err != nil {
+		log.Printf("Başvuru kontrol hatası - UserID: %d, Hata: %v", userId, err)
 		return err
 	}
 	if exists {
+		log.Printf("Kullanıcı zaten başvuru yapmış - UserID: %d, ApplicationType: %s", userId, applicationType)
 		return errors.New("Kullanıcı bu tür için zaten başvuru yapmış")
 	}
-	// Yeni başvuru ekle
-	query := `
-		INSERT INTO roleapplicationforms (userId, applicationType)
-		VALUES ($1, $2)
-	`
-	result := database.DB.Exec(query, userId, applicationType)
+
+	// 2️⃣ Yeni başvuruyu oluştur
+	application := models.RoleApplicationForm{
+		UserId:          uint(userId),
+		ApplicationType: applicationType,
+	}
+
+	log.Println("Yeni başvuru ekleniyor...")
+
+	result := database.DB.Create(&application)
 	if result.Error != nil {
-		return result.Error
+		log.Printf("Başvuru eklenirken hata oluştu - UserID: %d, ApplicationType: %s, Hata: %v", userId, applicationType, result.Error)
+		return errors.New("Role başvurusu oluşturulamadı")
 	}
-	if err != nil {
-		return err
-	}
+
+	log.Printf("Role başvurusu başarıyla oluşturuldu! - UserID: %d, ApplicationType: %s", userId, applicationType)
 	return nil
 }

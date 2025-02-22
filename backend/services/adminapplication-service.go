@@ -2,35 +2,49 @@ package services
 
 import (
 	"kfs-backend/database"
+	"kfs-backend/models"
 )
 
-func GetAllRoleApplications() ([]map[string]interface{}, error) {
-	var applications []map[string]interface{}
-	query := "SELECT * FROM roleapplicationforms"
-	err := database.DB.Raw(query).Scan(&applications).Error
-	if err != nil {
+// Service interface tanımı
+type RoleApplicationService interface {
+	GetAllRoleApplications() ([]models.RoleApplicationForm, error)
+	UpdateRoleApplicationStatus(applicationId uint, status string) error
+}
+
+// Service yapısı
+type roleApplicationService struct{}
+
+// Yeni servis örneği oluştur
+func NewRoleApplicationService() RoleApplicationService {
+	return &roleApplicationService{}
+}
+
+// Tüm rol başvurularını getir
+func (s *roleApplicationService) GetAllRoleApplications() ([]models.RoleApplicationForm, error) {
+	var applications []models.RoleApplicationForm
+	if err := database.DB.Find(&applications).Error; err != nil {
 		return nil, err
 	}
 	return applications, nil
 }
 
-func UpdateRoleApplicationStatus(applicationId int, status string) error {
+// Başvuru statüsünü güncelle
+func (s *roleApplicationService) UpdateRoleApplicationStatus(applicationId uint, status string) error {
 	tx := database.DB.Begin()
-	updateQuery := `UPDATE roleapplicationforms SET status = $1 WHERE applicationid = $2`
-	if err := tx.Exec(updateQuery, status, applicationId).Error; err != nil {
+	if err := tx.Model(&models.RoleApplicationForm{}).Where("id = ?", applicationId).Update("status", status).Error; err != nil {
 		tx.Rollback()
 		return err
 	}
+
 	if status == "accepted" {
-		var userId int
-		var applicationType string
-		query := `SELECT userId, applicationType FROM roleapplicationforms WHERE applicationid = $1`
-		if err := tx.Raw(query, applicationId).Row().Scan(&userId, &applicationType); err != nil {
+		var application models.RoleApplicationForm
+		if err := tx.First(&application, applicationId).Error; err != nil {
 			tx.Rollback()
 			return err
 		}
-		roleUpdateQuery := `UPDATE roles SET role = array_append(role, $1) WHERE userId = $2`
-		if err := tx.Exec(roleUpdateQuery, applicationType, userId).Error; err != nil {
+
+		role := models.Role{UserId: application.UserId, Role: application.ApplicationType}
+		if err := tx.Create(&role).Error; err != nil {
 			tx.Rollback()
 			return err
 		}

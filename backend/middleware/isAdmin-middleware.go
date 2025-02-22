@@ -18,7 +18,7 @@ func AdminAuthMiddleware(c *fiber.Ctx) error {
 	// Kullanıcının rollerinde "bireysel" veya "kurumsal" olup olmadığını kontrol et
 	isAuthorized := false
 	for _, role := range roles {
-		if role == "admin" {
+		if role == "admin" || role == "superadmin" {
 			isAuthorized = true
 			break
 		}
