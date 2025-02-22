@@ -21,68 +21,71 @@ type LoginRequest struct {
 
 // Login fonksiyonu
 func Login(c *fiber.Ctx) error {
+	secure := config.AppConfig.NodeEnv == "production"
 	db := database.DB
 
 	var req LoginRequest
 	if err := c.BodyParser(&req); err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": "Body parse edilemedi",
-		})
+		return fiber.NewError(fiber.StatusBadRequest, "İstek formatı geçersiz")
 	}
 
 	// 1) Kullanıcıyı email ile bul
 	var user models.User
 	result := db.Where("email = ?", req.Email).First(&user)
 	if result.Error != nil {
-		log.Println("DB'den kullanıcı çekilemedi. Email:", req.Email)
-		log.Println("Hata içeriği:", result.Error)
-		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-			"error": "Email veya şifre hatalı (kullanıcı yok)",
-		})
+		return fiber.NewError(fiber.StatusUnauthorized, "Email veya şifre hatalı")
 	}
 
 	// 2) Kullanıcının rollerini getir
 	var roles []string
 	db.Table("roles").Where("user_id = ?", user.UserId).Pluck("role", &roles)
 	if len(roles) == 0 {
-		log.Println("Kullanıcıya ait rol bulunamadı, varsayılan olarak 'user' atanıyor. userID:", user.UserId)
 		roles = append(roles, "user") // Varsayılan rol
+	}
+
+	// 3) Kullanıcının profilini getir
+	var profile models.Profile
+	profileResult := db.Where("user_id = ?", user.UserId).First(&profile)
+	var profileId uint
+	if profileResult.Error != nil {
+		// Profil bulunamadıysa yeni profil oluştur
+		newProfile := models.Profile{
+			UserId: user.UserId,
+		}
+		if err := db.Create(&newProfile).Error; err != nil {
+			return fiber.NewError(fiber.StatusInternalServerError, "Profil oluşturulamadı")
+		}
+		profileId = newProfile.ProfileId
+	} else {
+		profileId = profile.ProfileId
 	}
 
 	log.Printf("Bulunan roller: %+v", roles) // Roller array olarak loglanıyor
 
-	// 3) Şifreyi kontrol et
+	// 4) Şifreyi kontrol et
 	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(req.Password+user.Salt)); err != nil {
-		log.Println("Şifre kontrolü başarısız, userID:", user.UserId, "Hata:", err)
-		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-			"error": "Email veya şifre hatalı (şifre uyumsuz)",
-		})
+		return fiber.NewError(fiber.StatusUnauthorized, "Email veya şifre hatalı")
 	}
 
 	log.Println("Login başarılı, userID:", user.UserId, "Roller:", roles)
 
-	// 4) Access ve Refresh token oluştur
-	accessToken, err := generateJWT(user.UserId, roles, 15*time.Minute, "access")
+	// 5) Access ve Refresh token oluştur
+	accessToken, err := generateJWT(user.UserId, profileId, roles, 15*time.Minute, "access")
 	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error": "Access token oluşturulamadı",
-		})
+		return fiber.NewError(fiber.StatusInternalServerError, "Access token oluşturulamadı")
 	}
-	refreshToken, err := generateJWT(user.UserId, roles, 24*7*time.Hour, "refresh")
+	refreshToken, err := generateJWT(user.UserId, profileId, roles, 24*7*time.Hour, "refresh")
 	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error": "Refresh token oluşturulamadı",
-		})
+		return fiber.NewError(fiber.StatusInternalServerError, "Refresh token oluşturulamadı")
 	}
 
-	// 5) Cookie'lere yaz
 	c.Cookie(&fiber.Cookie{
 		Name:     "access_token",
 		Value:    accessToken,
 		Expires:  time.Now().Add(15 * time.Minute),
 		HTTPOnly: true,
-		Secure:   false,
-		SameSite: "strict",
+		Secure:   secure,
+		SameSite: "strict", // frontend ve backend farklı serverlarda alınırsa canlıya burası değiştirilecek
 		Path:     "/",
 	})
 	c.Cookie(&fiber.Cookie{
@@ -90,25 +93,26 @@ func Login(c *fiber.Ctx) error {
 		Value:    refreshToken,
 		Expires:  time.Now().Add(24 * 7 * time.Hour),
 		HTTPOnly: true,
-		Secure:   false,
-		SameSite: "strict",
+		Secure:   secure,
+		SameSite: "strict", // frontend ve backend farklı serverlarda alınırsa canlıya burası değiştirilecek
 		Path:     "/",
 	})
 
-	return c.JSON(fiber.Map{
+	return c.Status(fiber.StatusOK).JSON(fiber.Map{
 		"message": "Başarılı giriş. Tokenlar cookie olarak setlendi.",
 	})
 }
 
 func Logout(c *fiber.Ctx) error {
+	secure := config.AppConfig.NodeEnv == "production"
 	// Aynı cookie isimleriyle, geçmiş bir expire vererek yok edebiliriz
 	c.Cookie(&fiber.Cookie{
 		Name:     "access_token",
 		Value:    "",
 		Expires:  time.Now().Add(-1 * time.Hour),
 		HTTPOnly: true,
-		Secure:   false,
-		SameSite: "strict",
+		Secure:   secure,
+		SameSite: "strict", // frontend ve backend farklı serverlarda alınırsa canlıya burası değiştirilecek
 		Path:     "/",
 	})
 	c.Cookie(&fiber.Cookie{
@@ -116,8 +120,8 @@ func Logout(c *fiber.Ctx) error {
 		Value:    "",
 		Expires:  time.Now().Add(-1 * time.Hour),
 		HTTPOnly: true,
-		Secure:   false,
-		SameSite: "strict",
+		Secure:   secure,
+		SameSite: "strict", // frontend ve backend farklı serverlarda alınırsa canlıya burası değiştirilecek
 		Path:     "/",
 	})
 
@@ -128,11 +132,10 @@ func Logout(c *fiber.Ctx) error {
 
 // RefreshToken: Refresh token'ı doğrulayıp yeni access token üretir
 func RefreshToken(c *fiber.Ctx) error {
+	secure := config.AppConfig.NodeEnv == "production"
 	refreshToken := c.Cookies("refresh_token")
 	if refreshToken == "" {
-		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-			"error": "Refresh token bulunamadı",
-		})
+		return fiber.NewError(fiber.StatusUnauthorized, "Refresh token bulunamadı")
 	}
 
 	// Refresh token'ı doğrula
@@ -144,34 +147,26 @@ func RefreshToken(c *fiber.Ctx) error {
 	})
 
 	if err != nil {
-		log.Printf("Refresh token doğrulama hatası: %v", err)
-		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-			"error": "Geçersiz refresh token",
-		})
+		return fiber.NewError(fiber.StatusUnauthorized, "Geçersiz refresh token")
 	}
 
 	claims, ok := token.Claims.(jwt.MapClaims)
 	if !ok || !token.Valid {
-		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-			"error": "Geçersiz token claims",
-		})
+		return fiber.NewError(fiber.StatusUnauthorized, "Geçersiz token claims")
 	}
 
 	// Token tipini kontrol et
 	tokenType, ok := claims["type"].(string)
 	if !ok || tokenType != "refresh" {
-		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-			"error": "Geçersiz token tipi",
-		})
+		return fiber.NewError(fiber.StatusUnauthorized, "Geçersiz token tipi")
 	}
 
 	// Kullanıcı bilgilerini al
 	userId := uint(claims["userId"].(float64))
+	profileId := uint(claims["profileId"].(float64))
 	roles, ok := claims["roles"].([]interface{})
 	if !ok {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error": "Roller alınamadı",
-		})
+		return fiber.NewError(fiber.StatusInternalServerError, "Roller alınamadı")
 	}
 
 	// Interface dizisini string dizisine dönüştür
@@ -181,11 +176,9 @@ func RefreshToken(c *fiber.Ctx) error {
 	}
 
 	// Yeni access token oluştur
-	newAccessToken, err := generateJWT(userId, rolesStr, 15*time.Minute, "access")
+	newAccessToken, err := generateJWT(userId, profileId, rolesStr, 15*time.Minute, "access")
 	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error": "Yeni access token oluşturulamadı",
-		})
+		return fiber.NewError(fiber.StatusInternalServerError, "Yeni access token oluşturulamadı")
 	}
 
 	// Yeni access token'ı cookie olarak ayarla
@@ -194,24 +187,25 @@ func RefreshToken(c *fiber.Ctx) error {
 		Value:    newAccessToken,
 		Expires:  time.Now().Add(15 * time.Minute),
 		HTTPOnly: true,
-		Secure:   false,
-		SameSite: "strict",
+		Secure:   secure,
+		SameSite: "strict", // frontend ve backend farklı serverlarda alınırsa canlıya burası değiştirilecek
 		Path:     "/",
 	})
 
-	return c.JSON(fiber.Map{
+	return c.Status(fiber.StatusOK).JSON(fiber.Map{
 		"message": "Access token yenilendi",
 	})
 }
 
-// generateJWT: userId, role ve süre bilgisiyle JWT üretimi
-func generateJWT(userId uint, roles []string, duration time.Duration, tokenType string) (string, error) {
+// generateJWT: userId, profileId, role ve süre bilgisiyle JWT üretimi
+func generateJWT(userId uint, profileId uint, roles []string, duration time.Duration, tokenType string) (string, error) {
 	claims := jwt.MapClaims{
-		"userId": userId,
-		"roles":  roles,
-		"type":   tokenType,
-		"exp":    time.Now().Add(duration).Unix(),
-		"iat":    time.Now().Unix(),
+		"userId":    userId,
+		"profileId": profileId,
+		"roles":     roles,
+		"type":      tokenType,
+		"exp":       time.Now().Add(duration).Unix(),
+		"iat":       time.Now().Unix(),
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 

@@ -15,7 +15,7 @@ type ExtraFinancingResource struct {
 	UpdatedAt         time.Time `gorm:"type:timestamp;default:CURRENT_TIMESTAMP;column:updated_at"`
 
 	// İlişkiler
-	FundingInfo FundingInfo `gorm:"foreignKey:FundingInfoId;references:FundingInfoId"`
+	FundingInfo FundingInfo `gorm:"foreignKey:FundingInfoId;references:FundingInfoId" json:"-"`
 }
 
 // TableName tablosunun adını belirtir

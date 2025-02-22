@@ -6,7 +6,9 @@ import (
 	"kfs-backend/database"
 	"kfs-backend/models"
 
+	"github.com/gofiber/fiber/v2"
 	"golang.org/x/crypto/bcrypt"
+	"gorm.io/gorm"
 )
 
 type RegisterRequest struct {
@@ -41,16 +43,19 @@ func RegisterUser(req RegisterRequest) (*models.User, error) {
 	// Email kontrolü
 	var existingUser models.User
 	if result := db.Where("email = ?", req.Email).First(&existingUser); result.Error == nil {
-		return nil, result.Error
+		return nil, fiber.NewError(fiber.StatusConflict, "Bu email adresi zaten kullanımda")
 	}
 
 	// Salt oluştur
 	salt := generateSalt()
+	if salt == "" {
+		return nil, fiber.NewError(fiber.StatusInternalServerError, "Salt oluşturulurken hata oluştu")
+	}
 
 	// Şifreyi hashle
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(req.Password+salt), bcrypt.DefaultCost)
 	if err != nil {
-		return nil, err
+		return nil, fiber.NewError(fiber.StatusInternalServerError, "Şifre hashlenirken hata oluştu")
 	}
 
 	// Yeni kullanıcı oluştur
@@ -62,7 +67,7 @@ func RegisterUser(req RegisterRequest) (*models.User, error) {
 
 	// Kullanıcıyı veritabanına kaydet
 	if result := db.Create(&user); result.Error != nil {
-		return nil, result.Error
+		return nil, fiber.NewError(fiber.StatusInternalServerError, "Kullanıcı kaydedilirken hata oluştu")
 	}
 
 	// Verification kaydı oluştur
@@ -75,7 +80,7 @@ func RegisterUser(req RegisterRequest) (*models.User, error) {
 	}
 
 	if result := db.Create(&verification); result.Error != nil {
-		return nil, result.Error
+		return nil, fiber.NewError(fiber.StatusInternalServerError, "Doğrulama kaydı oluşturulurken hata oluştu")
 	}
 
 	return &user, nil
@@ -87,12 +92,12 @@ func UpdateUserInfo(userID uint, userType string, req UpdateUserRequest) (*model
 	// Kullanıcıyı veritabanında ara
 	var user models.User
 	if result := db.First(&user, userID); result.Error != nil {
-		return nil, nil, result.Error
+		return nil, nil, fiber.NewError(fiber.StatusNotFound, "Kullanıcı bulunamadı")
 	}
 
 	var verification models.Verification
 	if result := db.Where("user_id = ?", userID).First(&verification); result.Error != nil {
-		return nil, nil, result.Error
+		return nil, nil, fiber.NewError(fiber.StatusNotFound, "Doğrulama kaydı bulunamadı")
 	}
 
 	// Kullanıcı bilgilerini güncelle
@@ -107,16 +112,29 @@ func UpdateUserInfo(userID uint, userType string, req UpdateUserRequest) (*model
 
 	// Veritabanında güncelle
 	if result := db.Save(&user); result.Error != nil {
-		return nil, nil, result.Error
+		return nil, nil, fiber.NewError(fiber.StatusInternalServerError, "Kullanıcı güncellenirken hata oluştu")
 	}
 
 	if result := db.Save(&verification); result.Error != nil {
-		return nil, nil, result.Error
+		return nil, nil, fiber.NewError(fiber.StatusInternalServerError, "Doğrulama kaydı güncellenirken hata oluştu")
+	}
+
+	// Profil kontrolü yap, yoksa oluştur
+	var profile models.Profile
+	result := db.Where("user_id = ?", userID).First(&profile)
+	if result.Error != nil {
+		// Profil bulunamadıysa yeni profil oluştur
+		newProfile := models.Profile{
+			UserId: userID,
+		}
+		if err := db.Create(&newProfile).Error; err != nil {
+			return nil, nil, err
+		}
 	}
 
 	// Kullanıcının mevcut rolünü kontrol et
 	var existingRole models.Role
-	result := db.Where("user_id = ?", userID).First(&existingRole)
+	result = db.Where("user_id = ?", userID).First(&existingRole)
 
 	if result.Error != nil {
 		// Rol bulunamadıysa yeni rol oluştur
@@ -136,4 +154,31 @@ func UpdateUserInfo(userID uint, userType string, req UpdateUserRequest) (*model
 	}
 
 	return &user, &verification, nil
+}
+
+// Kullanıcı ve profil bilgilerini getir
+func GetUser(userId uint) (*models.Profile, error) {
+	db := database.DB
+	var profile models.Profile
+
+	// Kullanıcının profilini ve ilişkili user bilgilerini getir
+	if result := db.Preload("User", func(db *gorm.DB) *gorm.DB {
+		return db.Select("user_id, email, country, phone, first_name, last_name, company_name, tax_office, tax_number, created_at, updated_at")
+	}).Where("user_id = ?", userId).First(&profile); result.Error != nil {
+		// Profil bulunamazsa yeni profil oluştur
+		newProfile := models.Profile{
+			UserId: userId,
+		}
+		if err := db.Create(&newProfile).Error; err != nil {
+			return nil, fiber.NewError(fiber.StatusInternalServerError, "Yeni profil oluşturulurken hata oluştu")
+		}
+
+		if err := db.Preload("User", func(db *gorm.DB) *gorm.DB {
+			return db.Select("user_id, email, country, phone, first_name, last_name, company_name, tax_office, tax_number, created_at, updated_at")
+		}).First(&profile, newProfile.ProfileId).Error; err != nil {
+			return nil, fiber.NewError(fiber.StatusNotFound, "Kullanıcı profili bulunamadı")
+		}
+	}
+
+	return &profile, nil
 }

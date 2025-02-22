@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"kfs-backend/config" // Config paketini içe aktar
+
 	"kfs-backend/models"
 
 	"gorm.io/driver/postgres"
@@ -26,6 +27,7 @@ func migrateIfNotExists(db *gorm.DB) error {
 		{&models.Profile{}, "profiles"},
 		{&models.Verification{}, "verifications"},
 		{&models.Role{}, "roles"},
+		{&models.Investment{}, "investments"},
 	}
 
 	// Her model için ayrı ayrı migrasyon yap
@@ -42,6 +44,13 @@ func migrateIfNotExists(db *gorm.DB) error {
 		} else {
 			log.Printf("%s tablosu başarıyla migrate edildi", migration.Name)
 		}
+	}
+
+	session := db.Session(&gorm.Session{PrepareStmt: true})
+	if session.Error != nil {
+		fmt.Println("Session error: ", session.Error)
+	} else {
+		fmt.Println("Session created successfully")
 	}
 	return nil
 }
@@ -63,9 +72,9 @@ func ConnectDB() {
 	// GORM konfigürasyonu
 	gormConfig := &gorm.Config{
 		DisableForeignKeyConstraintWhenMigrating: true,
-		PrepareStmt: true, // Prepared statement'ları etkinleştir
-		Logger: logger.Default.LogMode(logger.Silent), // SQL loglarını kapat
-		SkipDefaultTransaction: true, // Varsayılan transaction'ları devre dışı bırak
+		PrepareStmt:                              true,                                  // Prepared statement'ları etkinleştir
+		Logger:                                   logger.Default.LogMode(logger.Silent), // SQL loglarını kapat
+		SkipDefaultTransaction:                   true,                                  // Varsayılan transaction'ları devre dışı bırak
 	}
 
 	// Veritabanına bağlan

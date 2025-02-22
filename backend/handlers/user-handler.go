@@ -30,30 +30,21 @@ type UpdateUserRequest struct {
 	IsLawApproved bool   `json:"isLawApproved" validate:"required"`
 }
 
-
-
 func Register(c *fiber.Ctx) error {
 	// Request body'i parse et
 	var req services.RegisterRequest
 	if err := c.BodyParser(&req); err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": "İstek formatı geçersiz",
-		})
+		return fiber.NewError(fiber.StatusBadRequest, "İstek formatı geçersiz")
 	}
 
 	// Doğrulama kodunu kontrol et
 	if !VerifyCode(req.Email, req.Code) {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": "Geçersiz doğrulama kodu",
-		})
+		return fiber.NewError(fiber.StatusBadRequest, "Geçersiz doğrulama kodu")
 	}
 
 	user, err := services.RegisterUser(req)
 	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error":   "Kullanıcı oluşturulurken bir hata oluştu",
-			"details": err.Error(),
-		})
+		return err // Service'den gelen fiber.Error'u direkt olarak dön
 	}
 
 	return c.Status(fiber.StatusCreated).JSON(fiber.Map{
@@ -68,33 +59,24 @@ func UpdateUser(c *fiber.Ctx) error {
 	userIDParam := c.Params("userId")
 	userID, err := strconv.Atoi(userIDParam)
 	if err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": "Geçersiz kullanıcı ID",
-		})
+		return fiber.NewError(fiber.StatusBadRequest, "Geçersiz kullanıcı ID")
 	}
 
 	// Query'den userType parametresini al
 	userType := c.Query("userType")
-	if userType == "" || (userType != "bireysel" && userType != "kurumsal") {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": "Geçersiz userType değeri. 'bireysel' veya 'kurumsal' olmalıdır",
-		})
+	if userType == "" || (userType != "individual" && userType != "corporate") {
+		return fiber.NewError(fiber.StatusBadRequest, "Geçersiz userType değeri. 'individual' veya 'corporate' olmalıdır")
 	}
 
 	// İstekten gelen güncelleme verilerini parse et
 	var req services.UpdateUserRequest
 	if err := c.BodyParser(&req); err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": "Geçersiz istek formatı",
-		})
+		return fiber.NewError(fiber.StatusBadRequest, "Geçersiz istek formatı")
 	}
 
 	user, verification, err := services.UpdateUserInfo(uint(userID), userType, req)
 	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error":   "Kullanıcı güncellenirken hata oluştu",
-			"details": err.Error(),
-		})
+		return err // Service'den gelen fiber.Error'u direkt olarak dön
 	}
 
 	return c.Status(fiber.StatusOK).JSON(fiber.Map{
@@ -102,4 +84,16 @@ func UpdateUser(c *fiber.Ctx) error {
 		"user":         user,
 		"verification": verification,
 	})
+}
+
+func GetUser(c *fiber.Ctx) error {
+	// Middleware'den userId'yi al
+	userId := c.Locals("userId").(uint)
+
+	profile, err := services.GetUser(userId)
+	if err != nil {
+		return err // Service'den gelen fiber.Error'u direkt olarak dön
+	}
+
+	return c.Status(fiber.StatusOK).JSON(profile)
 }

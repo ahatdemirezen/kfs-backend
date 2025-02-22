@@ -68,6 +68,16 @@ func AuthenticateMiddleware(c *fiber.Ctx) error {
 	}
 	c.Locals("userId", uint(userId))
 
+	// ProfileId'yi al ve ekle
+	profileId, ok := claims["profileId"].(float64)
+	if !ok {
+		log.Println("HATA: Token içerisinde profileId bulunamadı")
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+			"error": "Token içerisinde profileId bulunamadı",
+		})
+	}
+	c.Locals("profileId", uint(profileId))
+
 	// Rolleri al ve ekle
 	roles, ok := claims["roles"].([]interface{})
 	if !ok {

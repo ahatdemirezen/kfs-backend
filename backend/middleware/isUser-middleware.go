@@ -20,7 +20,7 @@ func IsUserMiddleware(c *fiber.Ctx) error {
 	// Kullanıcının rollerinde "bireysel" veya "kurumsal" olup olmadığını kontrol et
 	isAuthorized := false
 	for _, role := range roles {
-		if role == "bireysel" || role == "kurumsal" {
+		if role == "individual" || role == "corporate" {
 			isAuthorized = true
 			break
 		}
