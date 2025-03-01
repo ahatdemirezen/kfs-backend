@@ -19,8 +19,13 @@ func main() {
 	})
 
 	// CORS middleware'ini ekle
-	app.Use(cors.New())
-
+	app.Use(cors.New(cors.Config{
+		AllowOrigins:     "http://localhost:3000", // Frontend URL'ini ekle
+		AllowMethods:     "GET,POST,PUT,DELETE,OPTIONS",
+		AllowHeaders:     "Origin, Content-Type, Accept, Authorization",
+		AllowCredentials: true, // withCredentials için gerekli!
+	}))
+ 
 	// Config yükle
 	config.LoadConfig()
 
@@ -48,10 +53,9 @@ func main() {
 		log.Printf("Route: %s %s", route.Method, route.Path)
 	}
 
-
 	// Campaign route'larını tanımla
 	routes.SetupCampaignRoutes(app)
-	
+
 	// VentureCategory route'larını tanımla
 	routes.SetupVentureCategoryRoutes(app)
 
@@ -132,7 +136,7 @@ func main() {
 
 	// AfterFundingFounderPartners route'larını tanımla
 	routes.SetupAfterFundingFounderPartnersRoutes(app)
-	
+
 	// Videos route'larını tanımla
 	routes.SetupVideosRoutes(app)
 
@@ -163,9 +167,6 @@ func main() {
 	// SaleGoals route'larını tanımla
 	routes.SetupSaleGoalsRoutes(app)
 
-
-
-
 	// Uygulamayı başlat
-	log.Fatal(app.Listen(":3000"))
+	log.Fatal(app.Listen(":3001"))
 }
