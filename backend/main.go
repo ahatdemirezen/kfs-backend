@@ -167,6 +167,17 @@ func main() {
 	// SaleGoals route'larını tanımla
 	routes.SetupSaleGoalsRoutes(app)
 
+	// FinancialCategories route'larını tanımla
+	routes.SetupFinancialCategoryRoutes(app)
+
+	// FinancialExpenses route'larını tanımla
+	routes.SetupFinancialExpenseRoutes(app)
+
+	// FinancialSubCategories route'larını tanımla
+	routes.SetupFinancialSubCategoryRoutes(app)
+
+
+
 	// Uygulamayı başlat
 	log.Fatal(app.Listen(":3001"))
 }
