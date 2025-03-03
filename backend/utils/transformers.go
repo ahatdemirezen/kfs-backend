@@ -385,6 +385,29 @@ func ConvertRequestToModel[R any, T any](req R) T {
             CreatedAt:    time.Now(),
             UpdatedAt:    time.Now(),
         }).(T)
+        case services.FinancialExpenseRequest:
+		model = any(models.FinancialExpense{
+			CampaignId:    v.CampaignId,
+			Year:          v.Year,
+			SubCategoryId: v.SubCategoryId,
+			Value:         v.Value,
+			CreatedAt:     time.Now(),
+			UpdatedAt:     time.Now(),
+		}).(T)
+        case services.FinancialCategoryRequest:
+		model = any(models.FinancialCategory{
+			Category:   v.Category,
+			CreatedAt:  time.Now(),
+			UpdatedAt:  time.Now(),
+		}).(T)
+        case services.FinancialSubCategoryRequest:
+		model = any(models.FinancialSubCategory{
+			CategoryId:  v.CategoryId,
+			SubCategory: v.SubCategory,
+			CreatedAt:   time.Now(),
+			UpdatedAt:   time.Now(),
+		}).(T)
+
     }
     return model
 }
