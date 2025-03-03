@@ -1,36 +1,53 @@
 package handlers
 
 import (
-	
+	"fmt"
 	"kfs-backend/services"
 	"kfs-backend/utils"
 
 	"github.com/gofiber/fiber/v2"
 )
 
+// Yeni bir girişimi oluşturur.
 func CreateVenture[T any, R any](c *fiber.Ctx, service services.VentureService[T], req R) error {
 	// JSON verisini parse et
 	if err := c.BodyParser(&req); err != nil {
 		return utils.RespondWithError(c, fiber.StatusBadRequest, "Geçersiz JSON formatı")
 	}
 
-	// Burada doğru tür parametrelerini belirtin
-	model := utils.ConvertRequestToModel[R, T](req)
+	// S3 Servisini başlat
+	s3Service, err := services.NewS3Service()
+	if err != nil {
+		return utils.RespondWithError(c, fiber.StatusInternalServerError, "S3 servisi başlatılamadı")
+	}
 
-	// Service'i kullanarak kaydı oluştur
+	var fileKey string
+	// Dosya yükleme işlemi (varsa)
+	file, err := c.FormFile("file")
+	if err == nil { // Eğer dosya varsa yükle
+		fileKey, err = s3Service.UploadFile(file, "ventures/files")
+		if err != nil {
+			return utils.RespondWithError(c, fiber.StatusInternalServerError, "Dosya yükleme başarısız")
+		}
+	}
+
+	// Modeli oluştur ve dosya anahtarını ekleyerek kaydet
+	model := utils.ConvertRequestToModel[R, T](req, fileKey)
+
+	// Servis ile kaydı oluştur
 	createdRecord, err := service.Create(&model)
 	if err != nil {
 		return utils.RespondWithError(c, fiber.StatusInternalServerError, "Kayıt oluşturulurken hata oluştu")
 	}
 
-	// Başarılı yanıt döndür
+	// Başarıyla oluşturulan kaydı döndür
 	return c.Status(fiber.StatusCreated).JSON(fiber.Map{
 		"message": "Kayıt başarıyla oluşturuldu",
 		"data":    createdRecord,
 	})
 }
 
-
+// ID ile girişim bilgisini getirir.
 func GetVentureByID[T any](c *fiber.Ctx, service services.VentureService[T]) error {
 	// ID parametresini al
 	id, err := utils.GetIDParam(c, "id")
@@ -38,35 +55,35 @@ func GetVentureByID[T any](c *fiber.Ctx, service services.VentureService[T]) err
 		return utils.RespondWithError(c, fiber.StatusBadRequest, "Geçersiz ID")
 	}
 
-	// Service'i kullanarak kaydı getir
+	// Servis üzerinden kaydı getir
 	record, err := service.GetByID(id)
 	if err != nil {
 		return utils.RespondWithError(c, fiber.StatusNotFound, "Kayıt bulunamadı")
 	}
 
-	// Başarılı yanıt döndür
+	// Kaydı döndür
 	return c.Status(fiber.StatusOK).JSON(record)
 }
 
-
+// Belirli bir alana göre girişim kayıtlarını getirir.
 func GetVenturesByField[T any](c *fiber.Ctx, service services.VentureService[T], field string) error {
-    // Parametre değerini al
-    value, err := utils.GetIDParam(c, field) // Örneğin, "product_model_info_id" parametresini al
-    if err != nil {
-        return utils.RespondWithError(c, fiber.StatusBadRequest, "Geçersiz parametre değeri")
-    }
+	// Parametre değerini al
+	value, err := utils.GetIDParam(c, field)
+	if err != nil {
+		return utils.RespondWithError(c, fiber.StatusBadRequest, "Geçersiz parametre değeri")
+	}
 
-    // Service'i kullanarak kayıtları getir
-    records, err := service.GetByField(field, value)
-    if err != nil {
-        return utils.RespondWithError(c, fiber.StatusNotFound, "Kayıtlar bulunamadı")
-    }
+	// Servis üzerinden kayıtları getir
+	records, err := service.GetByField(field, value)
+	if err != nil {
+		return utils.RespondWithError(c, fiber.StatusNotFound, "Kayıtlar bulunamadı")
+	}
 
-    // Başarılı yanıt döndür
-    return c.Status(fiber.StatusOK).JSON(records)
+	// Kayıtları döndür
+	return c.Status(fiber.StatusOK).JSON(records)
 }
 
-
+// Girişim bilgilerini günceller.
 func UpdateVenture[T any, R any](c *fiber.Ctx, service services.VentureService[T], req R) error {
 	// ID parametresini al
 	id, err := utils.GetIDParam(c, "id")
@@ -79,36 +96,146 @@ func UpdateVenture[T any, R any](c *fiber.Ctx, service services.VentureService[T
 		return utils.RespondWithError(c, fiber.StatusBadRequest, "Geçersiz JSON formatı")
 	}
 
-	// Request yapısını model yapısına dönüştür
-	model := utils.ConvertRequestToModel[R, T](req)
+	// Mevcut kaydı al
+	existingRecord, err := service.GetByID(id)
+	if err != nil {
+		return utils.RespondWithError(c, fiber.StatusNotFound, "Güncellenecek kayıt bulunamadı")
+	}
 
+	// S3 Servisini başlat
+	s3Service, err := services.NewS3Service()
+	if err != nil {
+		return utils.RespondWithError(c, fiber.StatusInternalServerError, "S3 servisi başlatılamadı")
+	}
 
-	// Service'i kullanarak kaydı güncelle
+	var fileKey string
+	// Dosya yükleme işlemi (varsa yeni dosya yüklenirse, eskisini sil)
+	file, err := c.FormFile("file")
+	if err == nil {
+		// Önceki dosyayı sil (varsa)
+		if existingFileKey, ok := utils.GetFileKey(existingRecord); ok && existingFileKey != "" {
+			s3Service.DeleteFile(existingFileKey)
+		}
+
+		// Yeni dosyayı yükle
+		fileKey, err = s3Service.UploadFile(file, "ventures/files")
+		if err != nil {
+			return utils.RespondWithError(c, fiber.StatusInternalServerError, "Dosya yükleme başarısız")
+		}
+	} else {
+		// Yeni dosya yoksa, mevcut dosya anahtarını koru
+		if existingFileKey, ok := utils.GetFileKey(existingRecord); ok {
+			fileKey = existingFileKey
+		}
+	}
+
+	// Modeli oluştur ve dosya anahtarını güncelleyerek kaydet
+	model := utils.ConvertRequestToModel[R, T](req, fileKey)
+
+	// Servis üzerinden kaydı güncelle
 	updatedRecord, err := service.Update(id, &model)
 	if err != nil {
 		return utils.RespondWithError(c, fiber.StatusInternalServerError, "Kayıt güncellenirken hata oluştu")
 	}
 
-	// Başarılı yanıt döndür
+	// Güncellenen kaydı döndür
 	return c.Status(fiber.StatusOK).JSON(fiber.Map{
 		"message": "Kayıt başarıyla güncellendi",
 		"data":    updatedRecord,
 	})
 }
 
+// ID ile girişim kaydını siler.
 func DeleteVenture[T any](c *fiber.Ctx, service services.VentureService[T]) error {
 	// ID parametresini al
-	id, err := utils.GetIDParam(c, 	"id")
+	id, err := utils.GetIDParam(c, "id")
 	if err != nil {
 		return utils.RespondWithError(c, fiber.StatusBadRequest, "Geçersiz ID")
 	}
 
-	// Service'i kullanarak kaydı sil
+	// Mevcut kaydı al
+	existingRecord, err := service.GetByID(id)
+	if err != nil {
+		return utils.RespondWithError(c, fiber.StatusNotFound, "Silinecek kayıt bulunamadı")
+	}
+
+	// S3 Servisini başlat
+	s3Service, err := services.NewS3Service()
+	if err != nil {
+		return utils.RespondWithError(c, fiber.StatusInternalServerError, "S3 servisi başlatılamadı")
+	}
+
+	// Kayıtla ilişkili dosyayı sil (varsa)
+	if existingFileKey, ok := utils.GetFileKey(existingRecord); ok && existingFileKey != "" {
+		s3Service.DeleteFile(existingFileKey)
+	}
+
+	// Servis üzerinden kaydı sil
 	if err := service.Delete(id); err != nil {
 		return utils.RespondWithError(c, fiber.StatusInternalServerError, "Kayıt silinirken hata oluştu")
 	}
 
-	// Başarılı yanıt döndür
+	// Başarı mesajını döndür
 	return c.Status(fiber.StatusOK).JSON(fiber.Map{"message": "Kayıt başarıyla silindi"})
 }
 
+// Generic Dosya Yükleme Handler
+func UploadFileAndUpdate(c *fiber.Ctx, service services.VentureService[any]) error {
+	// S3 Servisini başlat
+	s3Service, err := services.NewS3Service()
+	if err != nil {
+		return utils.RespondWithError(c, fiber.StatusInternalServerError, "S3 servisi başlatılamadı")
+	}
+
+	// Dosyayı al
+	file, err := c.FormFile("file")
+	if err != nil {
+		return utils.RespondWithError(c, fiber.StatusBadRequest, "Dosya yüklenemedi, lütfen bir dosya seçin")
+	}
+
+	// Hangi tabloya (sekme) yükleneceğini belirten parametre
+	table := c.FormValue("table")
+	if table == "" {
+		return utils.RespondWithError(c, fiber.StatusBadRequest, "Geçersiz table parametresi")
+	}
+
+	// Hangi alana (field) ekleneceğini belirten parametre
+	field := c.FormValue("field")
+	if field == "" {
+		return utils.RespondWithError(c, fiber.StatusBadRequest, "Geçersiz field parametresi")
+	}
+
+	// Güncellenmesi gereken kaydın ID'si
+	id, err := utils.GetIDParam(c, "id")
+	if err != nil {
+		return utils.RespondWithError(c, fiber.StatusBadRequest, "Geçersiz ID")
+	}
+
+	// Hangi klasöre yükleneceğini belirle (Örneğin: campaigns/files, patents/files)
+	folder := fmt.Sprintf("%s/files", table)
+
+	// Dosyayı S3'e yükle
+	fileKey, err := s3Service.UploadFile(file, folder)
+	if err != nil {
+		return utils.RespondWithError(c, fiber.StatusInternalServerError, "Dosya yükleme başarısız")
+	}
+
+	// Dinamik model getirme (hangi tablo güncellenecekse onun modelini buluyoruz)
+	record, err := services.GetRecordByID(table, id)
+	if err != nil {
+		return utils.RespondWithError(c, fiber.StatusNotFound, fmt.Sprintf("%s kaydı bulunamadı", table))
+	}
+
+	// Güncellenecek alanı belirleyerek değer atama
+	err = services.UpdateRecordField(record, field, fileKey)
+	if err != nil {
+		return utils.RespondWithError(c, fiber.StatusInternalServerError, "Veritabanı güncelleme hatası")
+	}
+
+	// Yanıt döndür
+	return c.Status(fiber.StatusOK).JSON(fiber.Map{
+		"message":  "Dosya başarıyla yüklendi ve veritabanına kaydedildi",
+		"file_key": fileKey,
+		"updated":  record,
+	})
+}

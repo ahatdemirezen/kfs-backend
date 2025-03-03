@@ -40,4 +40,5 @@ func SetupAnalysisInfoRoutes(app *fiber.App) {
 	analysisInfoGroup.Delete("/delete/:id", func(c *fiber.Ctx) error {
 		return handlers.DeleteVenture(c, analysisInfoService)
 	})
+
 }
