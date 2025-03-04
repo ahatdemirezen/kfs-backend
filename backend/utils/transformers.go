@@ -365,90 +365,6 @@ func ConvertRequestToModel[R any, T any](req R, fileKey string) T {
 			CreatedAt:   time.Now(),
 			UpdatedAt:   time.Now(),
 		}).(T)
-
-    case services.AfterFundingFounderPartnerRequest:
-        model = any(models.AfterFundingFounderPartner{
-            EnterpriseInfoId:       v.EnterpriseInfoId,
-            PartnerName:            v.PartnerName,
-            PartnerSurname:         v.PartnerSurname,
-            PartnerTitle:           v.PartnerTitle,
-            PartnerSchool:          v.PartnerSchool,
-            PartnerGpa:             v.PartnerGpa,
-            ResumeKey:              v.ResumeKey,
-            Citizenship:            v.Citizenship,
-            CapitalShareAmount:     v.CapitalShareAmount,
-            CapitalSharePercentage: v.CapitalSharePercentage,
-            VotePercentage:         v.VotePercentage,
-            Privilege:              v.Privilege,
-            CampaignRelation:       v.CampaignRelation,
-            Experience:             v.Experience,
-            Profession:             v.Profession,
-            CreatedAt:              time.Now(),
-            UpdatedAt:              time.Now(),
-        }).(T)
-    case services.VisualInfoRequest:
-        model = any(models.VisualInfo{
-            CampaignId:       v.CampaignId,
-            ShowcasePhotoKey: v.ShowcasePhotoKey,
-            CreatedAt:        time.Now(),
-            UpdatedAt:        time.Now(),
-        }).(T)
-    case services.VideosRequest:
-        model = any(models.Videos{
-            VisualInfoId: v.VisualInfoId,
-            VideoUrl:     v.VideoUrl,
-            CreatedAt:    time.Now(),
-            UpdatedAt:    time.Now(),
-        }).(T)
-    case services.OtherPhotosRequest:
-        model = any(models.OtherPhotos{
-            VisualInfoId: v.VisualInfoId,
-            PhotoKey:     v.PhotoKey,
-            CreatedAt:    time.Now(),
-            UpdatedAt:    time.Now(),
-        }).(T)
-        case services.OtherDocumentsInfoRequest:
-        model = any(models.OtherDocumentsInfo{
-            CampaignId:  v.CampaignId,
-            DocumentKey: v.DocumentKey,
-            CreatedAt:   time.Now(),
-            UpdatedAt:   time.Now(),
-        }).(T)
-        case services.ProfitForecastRequest:
-        model = any(models.ProfitForecast{
-            CampaignId:     v.CampaignId,
-            ProfitForecast: v.ProfitForecast,
-            CreatedAt:      time.Now(),
-            UpdatedAt:      time.Now(),
-        }).(T)
-        case services.InvestmentBudgetsRequest:
-        model = any(models.InvestmentBudgets{
-            CampaignId:      v.CampaignId,
-            YearOneBudget:   v.YearOneBudget,
-            YearTwoBudget:   v.YearTwoBudget,
-            YearThreeBudget: v.YearThreeBudget,
-            YearFourBudget:  v.YearFourBudget,
-            YearFiveBudget:  v.YearFiveBudget,
-            CreatedAt:       time.Now(),
-            UpdatedAt:       time.Now(),
-        }).(T)
-    case services.IncomeItemsRequest:
-        model = any(models.IncomeItems{
-            CampaignId:   v.CampaignId,
-            Title:        v.Title,
-            SalePrice:    v.SalePrice,
-            Cost:         v.Cost,
-            CreatedAt:    time.Now(),
-            UpdatedAt:    time.Now(),
-        }).(T)
-    case services.FinancialDocumentsRequest:
-        model = any(models.FinancialDocuments{
-            CampaignId:          v.CampaignId,
-            Subject:             v.Subject,
-            DocumentKey:         v.DocumentKey,
-            CreatedAt:           time.Now(),
-            UpdatedAt:           time.Now(),
-        }).(T)
         case services.ExplanationsRequest:
         model = any(models.Explanations{
             CampaignId:    v.CampaignId,
@@ -490,25 +406,6 @@ func ConvertRequestToModel[R any, T any](req R, fileKey string) T {
 			CreatedAt:   time.Now(),
 			UpdatedAt:   time.Now(),
 		}).(T)
-		case services.ExplanationsRequest:
-			model = any(models.Explanations{
-				CampaignId:  v.CampaignId,
-				Explanation: v.Explanation,
-				CreatedAt:   time.Now(),
-				UpdatedAt:   time.Now(),
-			}).(T)
-		case services.SaleGoalsRequest:
-			model = any(models.SaleGoals{
-				CampaignId:   v.CampaignId,
-				IncomeItemId: v.IncomeItemId,
-				YearOne:      v.YearOne,
-				YearTwo:      v.YearTwo,
-				YearThree:    v.YearThree,
-				YearFour:     v.YearFour,
-				YearFive:     v.YearFive,
-				CreatedAt:    time.Now(),
-				UpdatedAt:    time.Now(),
-			}).(T)
 	}
 	return model
 }
