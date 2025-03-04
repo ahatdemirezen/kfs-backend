@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"kfs-backend/services"
+	"mime/multipart"
 
 	// Zaman işlemleri için gerekli paket
 	"github.com/gofiber/fiber/v2"
@@ -19,31 +20,51 @@ type UpdateProfileRequest struct {
 }
 
 func UpdateProfile(c *fiber.Ctx) error {
-	var req UpdateProfileRequest
-
-	// İstek gövdesini parse et
-	if err := c.BodyParser(&req); err != nil {
-		return fiber.NewError(fiber.StatusBadRequest, "Geçersiz istek formatı")
-	}
-
 	userId := c.Locals("userId").(uint)
 
-	profile, err := services.UpdateProfile(
-		userId,
-		req.PhotoURL,
-		req.Website,
-		req.IdentityNumber,
-		req.BirthDate,
-		req.Gender,
-		req.AcademicTitle,
-	)
-
+	// Form-data içinden dosya al
+	var file *multipart.FileHeader
+	file, err := c.FormFile("photo")
 	if err != nil {
-		return err // Service'den gelen fiber.Error'u direkt olarak dön
+		file = nil // Dosya yüklenmemişse, nil olarak ayarla
+	}
+
+	// Diğer form alanlarını al
+	website := c.FormValue("website")
+	identityNumber := c.FormValue("identityNumber")
+	birthDate := c.FormValue("birthDate")
+	gender := c.FormValue("gender")
+	academicTitle := c.FormValue("academicTitle")
+
+	// Profili güncelle
+	profile, err := services.UpdateProfile(userId, file, website, identityNumber, birthDate, gender, academicTitle)
+	if err != nil {
+		return err
 	}
 
 	return c.Status(fiber.StatusOK).JSON(fiber.Map{
 		"message": "Profil başarıyla güncellendi",
+		"profile": profile,
+	})
+}
+
+func UpdateProfilePhoto(c *fiber.Ctx) error {
+	userId := c.Locals("userId").(uint)
+
+	// Form-data içinden dosya al
+	file, err := c.FormFile("photo")
+	if err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, "Dosya yüklenemedi, lütfen bir dosya seçin")
+	}
+
+	// **Sadece profil fotoğrafını güncelle**
+	profile, err := services.UpdateProfilePhoto(userId, file)
+	if err != nil {
+		return err
+	}
+
+	return c.Status(fiber.StatusOK).JSON(fiber.Map{
+		"message": "Profil fotoğrafı başarıyla güncellendi",
 		"profile": profile,
 	})
 }

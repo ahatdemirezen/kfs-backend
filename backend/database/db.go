@@ -74,7 +74,7 @@ func ConnectDB() {
 	// GORM konfigürasyonu
 	gormConfig := &gorm.Config{
 		DisableForeignKeyConstraintWhenMigrating: true,
-		PrepareStmt:                              true,                                  // Prepared statement'ları etkinleştir
+		PrepareStmt:                              false,                                 // Prepared statement'ları devre dışı bırak
 		Logger:                                   logger.Default.LogMode(logger.Silent), // SQL loglarını kapat
 		SkipDefaultTransaction:                   true,                                  // Varsayılan transaction'ları devre dışı bırak
 	}

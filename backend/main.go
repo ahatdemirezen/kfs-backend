@@ -15,6 +15,7 @@ import (
 func main() {
 	// Fiber uygulamasını başlat
 	app := fiber.New(fiber.Config{
+		BodyLimit:    50 * 1024 * 1024, // 50MB'a yükseltiliyor
 		ErrorHandler: middleware.ErrorHandler,
 	})
 
@@ -47,6 +48,9 @@ func main() {
 	routes.SetupAdminRoutes(app)           // superAdmin route'larını kaydet
 	routes.SetupRoleApplicationRoutes(app) // roleApp route'larını kaydet
 	routes.SetupRoleappRoutes(app)         // roleApp route'larını kaydet
+	routes.SetupAuthRoutes(app)
+	routes.SetupUserRoutes(app) // User routes'ları ekle
+	routes.SetupProfileRoutes(app)
 
 	// Debug için tüm route'ları yazdır
 	for _, route := range app.GetRoutes() {
@@ -177,6 +181,8 @@ func main() {
 	routes.SetupFinancialSubCategoryRoutes(app)
 
 
+	// Venture route'larını tanımla
+	routes.SetupGeneralRoutes(app)
 
 	// Uygulamayı başlat
 	log.Fatal(app.Listen(":3001"))
