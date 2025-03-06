@@ -21,12 +21,12 @@ func main() {
 
 	// CORS middleware'ini ekle
 	app.Use(cors.New(cors.Config{
-		AllowOrigins:     "http://localhost:3000", // Frontend URL'ini ekle
+		AllowOrigins:     "http://localhost:3001", // Frontend URL'ini ekle
 		AllowMethods:     "GET,POST,PUT,DELETE,OPTIONS",
 		AllowHeaders:     "Origin, Content-Type, Accept, Authorization",
 		AllowCredentials: true, // withCredentials için gerekli!
 	}))
- 
+
 	// Config yükle
 	config.LoadConfig()
 
@@ -180,10 +180,9 @@ func main() {
 	// FinancialSubCategories route'larını tanımla
 	routes.SetupFinancialSubCategoryRoutes(app)
 
-
 	// Venture route'larını tanımla
 	routes.SetupGeneralRoutes(app)
 
 	// Uygulamayı başlat
-	log.Fatal(app.Listen(":3001"))
+	log.Fatal(app.Listen(":3000"))
 }

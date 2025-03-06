@@ -16,9 +16,4 @@ func SetupProfileRoutes(app *fiber.App) {
 		middleware.AuthenticateMiddleware,
 		middleware.IsUserMiddleware,
 		handlers.UpdateProfile)
-
-	profile.Post("/upload-photo",
-		middleware.AuthenticateMiddleware,
-		middleware.IsUserMiddleware,
-		handlers.UpdateProfilePhoto)
 }
