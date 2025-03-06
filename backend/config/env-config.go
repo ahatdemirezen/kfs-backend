@@ -22,7 +22,7 @@ var AppConfig *Config
 
 func LoadConfig() {
 	// .env dosyasını yükle
-	err := godotenv.Load()
+	err := godotenv.Load("/etc/secrets/.env")
 	if err != nil {
 		log.Fatal(err)
 		log.Fatal("Error loading .env file")
