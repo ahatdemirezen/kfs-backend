@@ -36,7 +36,7 @@ func main() {
 	fmt.Println("Current working directory:", directory) // print the
 
 	// Config yükle
-	config.LoadConfig("/opt/render/project/go/src/github.com/kadirkattas/kfs-backend/backend/.env")
+	config.LoadConfig("/opt/render/project/go/src/github.com/kadirkattas/kfs-backend/.env")
 
 	// Veritabanı bağlantısını başlat
 	database.ConnectDB()
