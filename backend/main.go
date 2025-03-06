@@ -1,9 +1,7 @@
 package main
 
 import (
-	"fmt"
 	"log"
-	"os"
 
 	"kfs-backend/config"
 	"kfs-backend/database" // Veritabanı bağlantısı
@@ -29,14 +27,8 @@ func main() {
 		AllowCredentials: true, // withCredentials için gerekli!
 	}))
 
-	directory, err := os.Getwd() // get the current directory using the built-in function
-	if err != nil {
-		fmt.Println(err) // print the error if obtained
-	}
-	fmt.Println("Current working directory:", directory) // print the
-
 	// Config yükle
-	config.LoadConfig("/opt/render/project/go/src/github.com/kadirkattas/kfs-backend/.env")
+	config.LoadConfig()
 
 	// Veritabanı bağlantısını başlat
 	database.ConnectDB()
