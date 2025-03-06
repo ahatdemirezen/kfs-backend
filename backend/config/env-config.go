@@ -20,11 +20,11 @@ type Config struct {
 
 var AppConfig *Config
 
-func LoadConfig() {
+func LoadConfig(envPath string) {
 	// .env dosyasını yükle
-	err := godotenv.Load(".env")
+	err := godotenv.Load(envPath)
 	if err != nil {
-		log.Fatal("Error loading .env file")
+		log.Fatalf("Error loading .env file from path: %s", envPath)
 	}
 
 	// Config yapısını doldur

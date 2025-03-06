@@ -26,9 +26,9 @@ func main() {
 		AllowHeaders:     "Origin, Content-Type, Accept, Authorization",
 		AllowCredentials: true, // withCredentials için gerekli!
 	}))
- 
+
 	// Config yükle
-	config.LoadConfig()
+	config.LoadConfig(".env")
 
 	// Veritabanı bağlantısını başlat
 	database.ConnectDB()
@@ -179,7 +179,6 @@ func main() {
 
 	// FinancialSubCategories route'larını tanımla
 	routes.SetupFinancialSubCategoryRoutes(app)
-
 
 	// Venture route'larını tanımla
 	routes.SetupGeneralRoutes(app)
