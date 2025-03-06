@@ -28,7 +28,7 @@ func main() {
 	}))
 
 	// Config yükle
-	config.LoadConfig(".env")
+	config.LoadConfig("../.env")
 
 	// Veritabanı bağlantısını başlat
 	database.ConnectDB()
