@@ -37,17 +37,17 @@ func UpdateProfile(userId uint, fileHeader *multipart.FileHeader, website, ident
 		}
 		profile.PhotoURL = photoURL // Yeni fotoğraf URL'sini kaydet
 	}
-
-	// Doğum tarihi formatını kontrol et ve dönüştür
-	birthDate, err := time.Parse("2006-01-02", birthDateStr)
-	if err != nil {
-		return nil, fiber.NewError(fiber.StatusBadRequest, "Doğum tarihi formatı geçersiz. Beklenen format: YYYY-MM-DD")
+	// Eğer doğum tarihi boş değilse parse et
+	if birthDateStr != "" {
+		birthDate, err := time.Parse("2006-01-02", birthDateStr)
+		if err != nil {
+			return nil, fiber.NewError(fiber.StatusBadRequest, "Doğum tarihi formatı geçersiz. Beklenen format: YYYY-MM-DD")
+		}
+		profile.BirthDate = birthDate
 	}
-
-	// Profili güncelle
+	// Diğer alanları her durumda güncelle
 	profile.Website = website
 	profile.IdentityNumber = identityNumber
-	profile.BirthDate = birthDate
 	profile.Gender = gender
 	profile.AcademicTitle = academicTitle
 
