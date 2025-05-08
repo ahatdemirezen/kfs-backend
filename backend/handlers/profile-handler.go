@@ -47,24 +47,3 @@ func UpdateProfile(c *fiber.Ctx) error {
 		"profile": profile,
 	})
 }
-
-func UpdateProfilePhoto(c *fiber.Ctx) error {
-	userId := c.Locals("userId").(uint)
-
-	// Form-data içinden dosya al
-	file, err := c.FormFile("photo")
-	if err != nil {
-		return fiber.NewError(fiber.StatusBadRequest, "Dosya yüklenemedi, lütfen bir dosya seçin")
-	}
-
-	// **Sadece profil fotoğrafını güncelle**
-	profile, err := services.UpdateProfilePhoto(userId, file)
-	if err != nil {
-		return err
-	}
-
-	return c.Status(fiber.StatusOK).JSON(fiber.Map{
-		"message": "Profil fotoğrafı başarıyla güncellendi",
-		"profile": profile,
-	})
-}
